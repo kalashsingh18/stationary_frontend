@@ -1,0 +1,235 @@
+import type {
+  School,
+  Student,
+  Category,
+  Product,
+  Supplier,
+  PurchaseOrder,
+  Invoice,
+  Commission,
+} from "./types"
+
+export const schools: School[] = [
+  {
+    id: "s1",
+    name: "Delhi Public School",
+    contactPerson: "Mr. Rajesh Kumar",
+    phone: "9876543210",
+    email: "info@dps.edu",
+    address: "12 MG Road, New Delhi",
+    commissionPercentage: 10,
+    status: "active",
+    totalStudents: 245,
+    totalSales: 185000,
+    commissionEarned: 16820,
+  },
+  {
+    id: "s2",
+    name: "St. Mary's Academy",
+    contactPerson: "Sr. Martha Thomas",
+    phone: "9876543211",
+    email: "admin@stmarys.edu",
+    address: "45 Church Lane, Kolkata",
+    commissionPercentage: 12,
+    status: "active",
+    totalStudents: 180,
+    totalSales: 142000,
+    commissionEarned: 15336,
+  },
+  {
+    id: "s3",
+    name: "Sunrise International",
+    contactPerson: "Ms. Priya Sharma",
+    phone: "9876543212",
+    email: "office@sunrise.edu",
+    address: "78 Lake View, Bangalore",
+    commissionPercentage: 8,
+    status: "active",
+    totalStudents: 320,
+    totalSales: 256000,
+    commissionEarned: 18432,
+  },
+  {
+    id: "s4",
+    name: "Green Valley School",
+    contactPerson: "Dr. Anil Patel",
+    phone: "9876543213",
+    email: "gvs@school.in",
+    address: "22 Park Street, Pune",
+    commissionPercentage: 10,
+    status: "inactive",
+    totalStudents: 95,
+    totalSales: 45000,
+    commissionEarned: 4090,
+  },
+  {
+    id: "s5",
+    name: "Modern Academy",
+    contactPerson: "Mrs. Sunita Rao",
+    phone: "9876543214",
+    email: "modern@academy.edu",
+    address: "55 Hill Road, Mumbai",
+    commissionPercentage: 15,
+    status: "active",
+    totalStudents: 410,
+    totalSales: 312000,
+    commissionEarned: 42545,
+  },
+]
+
+export const students: Student[] = [
+  { id: "st1", rollNumber: "DPS-001", name: "Aarav Sharma", class: "5", section: "A", phone: "9123456780", schoolId: "s1", schoolName: "Delhi Public School" },
+  { id: "st2", rollNumber: "DPS-002", name: "Diya Patel", class: "5", section: "B", schoolId: "s1", schoolName: "Delhi Public School" },
+  { id: "st3", rollNumber: "DPS-003", name: "Kabir Singh", class: "7", section: "A", phone: "9123456781", schoolId: "s1", schoolName: "Delhi Public School" },
+  { id: "st4", rollNumber: "SM-001", name: "Ananya Gupta", class: "3", section: "A", schoolId: "s2", schoolName: "St. Mary's Academy" },
+  { id: "st5", rollNumber: "SM-002", name: "Rohan Verma", class: "8", section: "B", phone: "9123456782", schoolId: "s2", schoolName: "St. Mary's Academy" },
+  { id: "st6", rollNumber: "SI-001", name: "Meera Reddy", class: "10", section: "A", phone: "9123456783", schoolId: "s3", schoolName: "Sunrise International" },
+  { id: "st7", rollNumber: "SI-002", name: "Arjun Nair", class: "6", section: "C", schoolId: "s3", schoolName: "Sunrise International" },
+  { id: "st8", rollNumber: "GV-001", name: "Sanya Joshi", class: "LKG", section: "A", schoolId: "s4", schoolName: "Green Valley School" },
+  { id: "st9", rollNumber: "MA-001", name: "Vivaan Mehta", class: "12", section: "A", phone: "9123456784", schoolId: "s5", schoolName: "Modern Academy" },
+  { id: "st10", rollNumber: "MA-002", name: "Ishika Tiwari", class: "9", section: "B", schoolId: "s5", schoolName: "Modern Academy" },
+]
+
+export const categories: Category[] = [
+  { id: "c1", name: "Notebooks", productCount: 12 },
+  { id: "c2", name: "Pens & Pencils", productCount: 18 },
+  { id: "c3", name: "Geometry Items", productCount: 8 },
+  { id: "c4", name: "Art Supplies", productCount: 15 },
+  { id: "c5", name: "Files & Folders", productCount: 6 },
+]
+
+export const products: Product[] = [
+  { id: "p1", name: "Single Line Notebook 200pg", productCode: "NB-001", barcode: "8901234560001", categoryId: "c1", categoryName: "Notebooks", purchasePrice: 35, sellingPrice: 50, gstRate: 12, currentStock: 250, reorderLevel: 50, supplier: "National Stationery Co.", status: "active" },
+  { id: "p2", name: "Graph Paper Notebook", productCode: "NB-002", barcode: "8901234560002", categoryId: "c1", categoryName: "Notebooks", purchasePrice: 40, sellingPrice: 60, gstRate: 12, currentStock: 120, reorderLevel: 30, supplier: "National Stationery Co.", status: "active" },
+  { id: "p3", name: "Blue Ball Pen (Pack of 10)", productCode: "PN-001", barcode: "8901234560003", categoryId: "c2", categoryName: "Pens & Pencils", purchasePrice: 60, sellingPrice: 85, gstRate: 18, currentStock: 180, reorderLevel: 40, supplier: "Cello Pens Dist.", status: "active" },
+  { id: "p4", name: "HB Pencil (Pack of 12)", productCode: "PN-002", barcode: "8901234560004", categoryId: "c2", categoryName: "Pens & Pencils", purchasePrice: 45, sellingPrice: 65, gstRate: 18, currentStock: 8, reorderLevel: 30, supplier: "Apsara Dealers", status: "active" },
+  { id: "p5", name: "Geometry Box Standard", productCode: "GM-001", barcode: "8901234560005", categoryId: "c3", categoryName: "Geometry Items", purchasePrice: 80, sellingPrice: 120, gstRate: 18, currentStock: 65, reorderLevel: 20, supplier: "Camlin Store", status: "active" },
+  { id: "p6", name: "Drawing Pad A4", productCode: "AR-001", barcode: "8901234560006", categoryId: "c4", categoryName: "Art Supplies", purchasePrice: 55, sellingPrice: 80, gstRate: 12, currentStock: 15, reorderLevel: 20, supplier: "Art World Supplies", status: "active" },
+  { id: "p7", name: "Watercolor Set 24 Shades", productCode: "AR-002", barcode: "8901234560007", categoryId: "c4", categoryName: "Art Supplies", purchasePrice: 120, sellingPrice: 180, gstRate: 18, currentStock: 42, reorderLevel: 15, supplier: "Art World Supplies", status: "active" },
+  { id: "p8", name: "L-Folder Transparent", productCode: "FF-001", barcode: "8901234560008", categoryId: "c5", categoryName: "Files & Folders", purchasePrice: 15, sellingPrice: 25, gstRate: 18, currentStock: 300, reorderLevel: 50, supplier: "Office Plus", status: "active" },
+  { id: "p9", name: "Eraser Large", productCode: "PN-003", barcode: "8901234560009", categoryId: "c2", categoryName: "Pens & Pencils", purchasePrice: 5, sellingPrice: 10, gstRate: 12, currentStock: 5, reorderLevel: 40, supplier: "Apsara Dealers", status: "active" },
+  { id: "p10", name: "Spiral Notebook 400pg", productCode: "NB-003", barcode: "8901234560010", categoryId: "c1", categoryName: "Notebooks", purchasePrice: 65, sellingPrice: 95, gstRate: 12, currentStock: 45, reorderLevel: 25, supplier: "National Stationery Co.", status: "inactive" },
+]
+
+export const suppliers: Supplier[] = [
+  { id: "sup1", name: "National Stationery Co.", phone: "9800000001", gstin: "07AAACN1234A1Z5", paymentTerms: "Net 30", address: "Industrial Area, Phase 2, Delhi" },
+  { id: "sup2", name: "Cello Pens Dist.", phone: "9800000002", gstin: "27AABCC5678D1Z3", paymentTerms: "Net 15", address: "MIDC, Pune" },
+  { id: "sup3", name: "Apsara Dealers", phone: "9800000003", gstin: "29AADCA9012E1Z1", paymentTerms: "Net 30", address: "Peenya, Bangalore" },
+  { id: "sup4", name: "Camlin Store", phone: "9800000004", gstin: "27AABCC3456F1Z2", paymentTerms: "COD", address: "Andheri East, Mumbai" },
+  { id: "sup5", name: "Art World Supplies", phone: "9800000005", gstin: "33AADCA7890G1Z4", paymentTerms: "Net 45", address: "T Nagar, Chennai" },
+  { id: "sup6", name: "Office Plus", phone: "9800000006", gstin: "06AABCP1234H1Z6", paymentTerms: "Net 30", address: "Sector 18, Noida" },
+]
+
+export const purchaseOrders: PurchaseOrder[] = [
+  {
+    id: "po1",
+    purchaseNumber: "PO-2026-001",
+    supplierId: "sup1",
+    supplierName: "National Stationery Co.",
+    date: "2026-02-10",
+    items: [
+      { productId: "p1", productName: "Single Line Notebook 200pg", quantity: 500, unitPrice: 35, total: 17500 },
+      { productId: "p2", productName: "Graph Paper Notebook", quantity: 200, unitPrice: 40, total: 8000 },
+    ],
+    totalAmount: 25500,
+    paymentStatus: "paid",
+  },
+  {
+    id: "po2",
+    purchaseNumber: "PO-2026-002",
+    supplierId: "sup2",
+    supplierName: "Cello Pens Dist.",
+    date: "2026-02-12",
+    items: [
+      { productId: "p3", productName: "Blue Ball Pen (Pack of 10)", quantity: 300, unitPrice: 60, total: 18000 },
+    ],
+    totalAmount: 18000,
+    paymentStatus: "pending",
+  },
+  {
+    id: "po3",
+    purchaseNumber: "PO-2026-003",
+    supplierId: "sup5",
+    supplierName: "Art World Supplies",
+    date: "2026-02-14",
+    items: [
+      { productId: "p6", productName: "Drawing Pad A4", quantity: 100, unitPrice: 55, total: 5500 },
+      { productId: "p7", productName: "Watercolor Set 24 Shades", quantity: 50, unitPrice: 120, total: 6000 },
+    ],
+    totalAmount: 11500,
+    paymentStatus: "pending",
+  },
+]
+
+export const invoices: Invoice[] = [
+  {
+    id: "inv1",
+    invoiceNumber: "INV-2026-0001",
+    date: "2026-02-15",
+    studentId: "st1",
+    studentName: "Aarav Sharma",
+    rollNumber: "DPS-001",
+    schoolId: "s1",
+    schoolName: "Delhi Public School",
+    items: [
+      { productId: "p1", productName: "Single Line Notebook 200pg", quantity: 5, unitPrice: 50, gstRate: 12, gstAmount: 30, total: 280 },
+      { productId: "p3", productName: "Blue Ball Pen (Pack of 10)", quantity: 2, unitPrice: 85, gstRate: 18, gstAmount: 30.6, total: 200.6 },
+    ],
+    subtotal: 420,
+    discount: 0,
+    gstAmount: 60.6,
+    totalAmount: 480.6,
+    commissionAmount: 42,
+  },
+  {
+    id: "inv2",
+    invoiceNumber: "INV-2026-0002",
+    date: "2026-02-15",
+    studentId: "st6",
+    studentName: "Meera Reddy",
+    rollNumber: "SI-001",
+    schoolId: "s3",
+    schoolName: "Sunrise International",
+    items: [
+      { productId: "p5", productName: "Geometry Box Standard", quantity: 1, unitPrice: 120, gstRate: 18, gstAmount: 21.6, total: 141.6 },
+      { productId: "p7", productName: "Watercolor Set 24 Shades", quantity: 1, unitPrice: 180, gstRate: 18, gstAmount: 32.4, total: 212.4 },
+    ],
+    subtotal: 300,
+    discount: 10,
+    gstAmount: 54,
+    totalAmount: 344,
+    commissionAmount: 23.2,
+  },
+  {
+    id: "inv3",
+    invoiceNumber: "INV-2026-0003",
+    date: "2026-02-14",
+    studentId: "st9",
+    studentName: "Vivaan Mehta",
+    rollNumber: "MA-001",
+    schoolId: "s5",
+    schoolName: "Modern Academy",
+    items: [
+      { productId: "p1", productName: "Single Line Notebook 200pg", quantity: 10, unitPrice: 50, gstRate: 12, gstAmount: 60, total: 560 },
+      { productId: "p5", productName: "Geometry Box Standard", quantity: 1, unitPrice: 120, gstRate: 18, gstAmount: 21.6, total: 141.6 },
+      { productId: "p8", productName: "L-Folder Transparent", quantity: 5, unitPrice: 25, gstRate: 18, gstAmount: 22.5, total: 147.5 },
+    ],
+    subtotal: 745,
+    discount: 20,
+    gstAmount: 104.1,
+    totalAmount: 829.1,
+    commissionAmount: 108.75,
+  },
+]
+
+export const commissions: Commission[] = [
+  { id: "cm1", schoolId: "s1", schoolName: "Delhi Public School", month: "January 2026", totalSales: 85000, baseAmount: 76800, commissionRate: 10, commissionAmount: 7680, status: "settled", settledDate: "2026-02-05", reference: "UTR-12345678" },
+  { id: "cm2", schoolId: "s2", schoolName: "St. Mary's Academy", month: "January 2026", totalSales: 62000, baseAmount: 55800, commissionRate: 12, commissionAmount: 6696, status: "settled", settledDate: "2026-02-05", reference: "UTR-12345679" },
+  { id: "cm3", schoolId: "s3", schoolName: "Sunrise International", month: "January 2026", totalSales: 110000, baseAmount: 99000, commissionRate: 8, commissionAmount: 7920, status: "pending" },
+  { id: "cm4", schoolId: "s5", schoolName: "Modern Academy", month: "January 2026", totalSales: 145000, baseAmount: 130500, commissionRate: 15, commissionAmount: 19575, status: "pending" },
+  { id: "cm5", schoolId: "s1", schoolName: "Delhi Public School", month: "February 2026", totalSales: 42000, baseAmount: 37800, commissionRate: 10, commissionAmount: 3780, status: "pending" },
+  { id: "cm6", schoolId: "s3", schoolName: "Sunrise International", month: "February 2026", totalSales: 56000, baseAmount: 50400, commissionRate: 8, commissionAmount: 4032, status: "pending" },
+]
+
+export const classOptions = ["LKG", "UKG", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+export const sectionOptions = ["A", "B", "C", "D"]
