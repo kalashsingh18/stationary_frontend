@@ -1,16 +1,8 @@
-import { API_BASE_URL, getAuthHeaders } from './config';
+import { apiRequest } from './config';
 import { Invoice } from '../types';
 
 export const getInvoices = async (): Promise<Invoice[]> => {
-  const response = await fetch(`${API_BASE_URL}/invoices`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch invoices');
-  }
-
-  const data = await response.json();
+  const data = await apiRequest('/invoices');
   return data.data.map((invoice: any) => ({
     id: invoice._id,
     invoiceNumber: invoice.invoiceNumber,
@@ -38,18 +30,11 @@ export const getInvoices = async (): Promise<Invoice[]> => {
 };
 
 export const createInvoice = async (invoiceData: any): Promise<Invoice> => {
-  const response = await fetch(`${API_BASE_URL}/invoices`, {
+  const data = await apiRequest('/invoices', {
     method: 'POST',
-    headers: getAuthHeaders(),
     body: JSON.stringify(invoiceData),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to create invoice');
-  }
-
-  const data = await response.json();
   const invoice = data.data;
 
   // Ideally we return the mapped object, but here simplified for creation usage
