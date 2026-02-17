@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,17 +38,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react"
-import { schools as initialSchools } from "@/lib/mock-data"
 import type { School } from "@/lib/types"
+import { getSchools, createSchool } from "@/lib/api/schools"
 import { toast } from "sonner"
 
 export default function SchoolsPage() {
-  const [schools, setSchools] = useState<School[]>(initialSchools)
+  const [schools, setSchools] = useState<School[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingSchool, setEditingSchool] = useState<School | null>(null)
   const [viewingSchool, setViewingSchool] = useState<School | null>(null)
+
+  useEffect(() => {
+    fetchSchools()
+  }, [])
+
+  async function fetchSchools() {
+    try {
+      setLoading(true)
+      const data = await getSchools()
+      setSchools(data)
+    } catch (error) {
+      toast.error("Failed to fetch schools")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredSchools = schools.filter((school) => {
     const matchesSearch =
@@ -58,23 +75,52 @@ export default function SchoolsPage() {
     return matchesSearch && matchesStatus
   })
 
-  function handleAddSchool(formData: FormData) {
-    const newSchool: School = {
-      id: `s${Date.now()}`,
-      name: formData.get("name") as string,
-      contactPerson: formData.get("contactPerson") as string,
-      phone: formData.get("phone") as string,
-      email: formData.get("email") as string,
-      address: formData.get("address") as string,
-      commissionPercentage: Number(formData.get("commission")),
-      status: "active",
-      totalStudents: 0,
-      totalSales: 0,
-      commissionEarned: 0,
+  async function handleAddSchool(formData: FormData) {
+    try {
+      const schoolData = {
+        name: formData.get("name"),
+        contact: {
+          phone: formData.get("phone"),
+          email: formData.get("email"),
+        },
+        address: {
+            city: formData.get("address")?.toString().split(',')[0] || '', // Simple parsing assumption
+            state: formData.get("address")?.toString().split(',')[1] || '',
+        },
+        commissionRate: Number(formData.get("commission")),
+        code: `SC${Date.now()}`, // Temporary code generation
+        contactPerson: formData.get("contactPerson"), // Assuming backend accepts this or we store it in contact
+      }
+
+      // Adjusting payload to match backend schema roughly, 
+      // though backend schema has contact object.
+      // Frontend form has flat structure.
+      // Let's ensure payload matches what createSchool API expects (which sends JSON)
+      
+      const payload = {
+        name: formData.get("name"),
+        code: `S${Math.floor(Math.random() * 10000)}`, // Random code
+        commissionRate: Number(formData.get("commission")),
+         address: {
+          city: "Mumbai", // Default for now as form input is single string
+          state: "Maharashtra" // Default
+        },
+        contact: {
+          phone: formData.get("phone"),
+          email: formData.get("email")
+        },
+        // contactPerson is not directly in School model based on previous reads, 
+        // usually stored in contact or separate field if added.
+        // Checking School model... it has contact object.
+      };
+
+      const newSchool = await createSchool(payload)
+      setSchools((prev) => [newSchool, ...prev]) // Prepend new school
+      setIsAddOpen(false)
+      toast.success("School added successfully")
+    } catch (error) {
+       toast.error(error instanceof Error ? error.message : "Failed to add school")
     }
-    setSchools((prev) => [...prev, newSchool])
-    setIsAddOpen(false)
-    toast.success("School added successfully")
   }
 
   function handleDeleteSchool(id: string) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,30 +29,62 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
-import { categories as initialCategories } from "@/lib/mock-data"
+import { Plus, Search, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import type { Category } from "@/lib/types"
+import { getCategories, createCategory, updateCategory, deleteCategory } from "@/lib/api/categories"
 import { toast } from "sonner"
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>(initialCategories)
+  const [categoriesList, setCategoriesList] = useState<Category[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [loading, setLoading] = useState(true)
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
 
-  function handleAddCategory(formData: FormData) {
-    const newCategory: Category = {
-      id: `c${Date.now()}`,
-      name: formData.get("name") as string,
-      productCount: 0,
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  async function fetchCategories() {
+    try {
+      setLoading(true)
+      const data = await getCategories()
+      setCategoriesList(data)
+    } catch (error) {
+      toast.error("Failed to fetch categories")
+    } finally {
+      setLoading(false)
     }
-    setCategories((prev) => [...prev, newCategory])
-    setIsAddOpen(false)
-    toast.success("Category added successfully")
   }
 
-  function handleDeleteCategory(id: string) {
-    setCategories((prev) => prev.filter((c) => c.id !== id))
-    toast.success("Category deleted successfully")
+  const filteredCategories = categoriesList.filter((category) =>
+    category.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  async function handleAddCategory(formData: FormData) {
+    try {
+        const payload = {
+            name: formData.get("name"),
+            description: formData.get("description"),
+        }
+        
+        const newCategory = await createCategory(payload)
+        setCategoriesList((prev) => [newCategory, ...prev])
+        setIsAddOpen(false)
+        toast.success("Category added successfully")
+    } catch (error) {
+        toast.error("Failed to add category")
+    }
+  }
+
+  async function handleDeleteCategory(id: string) {
+    try {
+        await deleteCategory(id)
+        setCategoriesList((prev) => prev.filter((c) => c.id !== id))
+        toast.success("Category deleted successfully")
+    } catch (error) {
+        toast.error("Failed to delete category")
+    }
   }
 
   return (
@@ -71,16 +103,20 @@ export default function CategoriesPage() {
                 Add Category
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[400px]">
+            <DialogContent className="sm:max-w-[500px]">
               <form action={handleAddCategory}>
                 <DialogHeader>
                   <DialogTitle>Add New Category</DialogTitle>
-                  <DialogDescription>Create a new product category.</DialogDescription>
+                  <DialogDescription>Enter category details.</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="name">Category Name</Label>
-                    <Input id="name" name="name" required placeholder="e.g. Notebooks" />
+                    <Input id="name" name="name" required placeholder="Category name" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Description (Optional)</Label>
+                    <Input id="description" name="description" placeholder="Description" />
                   </div>
                 </div>
                 <DialogFooter>
@@ -94,43 +130,63 @@ export default function CategoriesPage() {
       />
 
       <div className="flex flex-col gap-6 p-6">
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search categories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {/* Table */}
         <Card>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Category Name</TableHead>
-                  <TableHead className="text-right">Products</TableHead>
+                  <TableHead className="text-right">Product Count</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {categories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell className="font-medium">{category.name}</TableCell>
-                    <TableCell className="text-right">{category.productCount}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingCategory(category)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteCategory(category.id)} className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {filteredCategories.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                      No categories found.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredCategories.map((category) => (
+                    <TableRow key={category.id}>
+                      <TableCell className="font-medium">{category.name}</TableCell>
+                      <TableCell className="text-right font-mono">{category.productCount}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Actions</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditingCategory(category)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteCategory(category.id)} className="text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -139,25 +195,43 @@ export default function CategoriesPage() {
 
       {/* Edit Category Dialog */}
       <Dialog open={!!editingCategory} onOpenChange={() => setEditingCategory(null)}>
-        <DialogContent className="sm:max-w-[400px]">
-          <form action={(formData) => {
+        <DialogContent className="sm:max-w-[500px]">
+          <form action={async (formData) => {
             if (!editingCategory) return
-            setCategories((prev) =>
-              prev.map((c) =>
-                c.id === editingCategory.id ? { ...c, name: formData.get("name") as string } : c,
-              ),
-            )
-            setEditingCategory(null)
-            toast.success("Category updated successfully")
+            try {
+                const payload = {
+                    name: formData.get("name"),
+                    description: formData.get("description"),
+                }
+                
+                // Update API call
+                await updateCategory(editingCategory.id, payload)
+
+                setCategoriesList((prev) =>
+                  prev.map((c) =>
+                    c.id === editingCategory.id
+                      ? { ...c, name: formData.get("name") as string }
+                      : c,
+                  ),
+                )
+                setEditingCategory(null)
+                toast.success("Category updated successfully")
+            } catch (error) {
+                toast.error("Failed to update category")
+            }
           }}>
             <DialogHeader>
               <DialogTitle>Edit Category</DialogTitle>
-              <DialogDescription>Update category name.</DialogDescription>
+              <DialogDescription>Update category information.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-name">Category Name</Label>
                 <Input id="edit-name" name="name" defaultValue={editingCategory?.name} required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Input id="edit-description" name="description" defaultValue={editingCategory?.description} placeholder="Description" />
               </div>
             </div>
             <DialogFooter>

@@ -1,298 +1,277 @@
 "use client"
 
+import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
-import { StatCard } from "@/components/stat-card"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  IndianRupee,
-  TrendingUp,
-  AlertTriangle,
-  Receipt,
   GraduationCap,
+  Users,
   Package,
+  Layers,
+  Truck,
+  ShoppingCart,
+  Warehouse,
+  Receipt,
+  BarChart3,
+  BadgePercent,
+  LayoutDashboard,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-} from "recharts"
-import { schools, products, invoices, commissions } from "@/lib/mock-data"
 
-const salesData = [
-  { month: "Sep", sales: 45000 },
-  { month: "Oct", sales: 62000 },
-  { month: "Nov", sales: 78000 },
-  { month: "Dec", sales: 55000 },
-  { month: "Jan", sales: 92000 },
-  { month: "Feb", sales: 48000 },
+const management = [
+  {
+    title: "Schools",
+    description: "Manage school profiles and commissions",
+    href: "/dashboard/schools",
+    icon: GraduationCap,
+    gradient: "from-blue-500 to-indigo-500",
+    bg: "bg-blue-500/10",
+    text: "text-blue-500",
+  },
+  {
+    title: "Students",
+    description: "Manage student database and assignments",
+    href: "/dashboard/students",
+    icon: Users,
+    gradient: "from-emerald-500 to-green-600",
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-500",
+  },
+  {
+    title: "Categories",
+    description: "Manage product categories",
+    href: "/dashboard/categories",
+    icon: Layers,
+    gradient: "from-pink-500 to-rose-500",
+    bg: "bg-pink-500/10",
+    text: "text-pink-500",
+  },
+  {
+    title: "Products",
+    description: "Manage product inventory and pricing",
+    href: "/dashboard/products",
+    icon: Package,
+    gradient: "from-violet-500 to-purple-600",
+    bg: "bg-violet-500/10",
+    text: "text-violet-500",
+  },
+  {
+    title: "Suppliers",
+    description: "Manage supplier information and contacts",
+    href: "/dashboard/suppliers",
+    icon: Truck,
+    gradient: "from-orange-500 to-amber-500",
+    bg: "bg-orange-500/10",
+    text: "text-orange-500",
+  },
 ]
 
-const schoolSalesData = schools
-  .filter((s) => s.status === "active")
-  .map((s) => ({ name: s.name.split(" ")[0], sales: s.totalSales }))
-
-const COLORS = [
-  "hsl(211, 100%, 50%)",
-  "hsl(158, 64%, 52%)",
-  "hsl(30, 90%, 56%)",
-  "hsl(340, 75%, 55%)",
-  "hsl(270, 60%, 55%)",
+const operations = [
+  {
+    title: "Purchases",
+    description: "Create and manage purchase orders",
+    href: "/dashboard/purchases",
+    icon: ShoppingCart,
+    gradient: "from-teal-500 to-cyan-600",
+    bg: "bg-teal-500/10",
+    text: "text-teal-500",
+  },
+  {
+    title: "Inventory",
+    description: "View stock levels and valuation",
+    href: "/dashboard/inventory", 
+    icon: Warehouse,
+    gradient: "from-amber-400 to-yellow-500",
+    bg: "bg-amber-400/10",
+    text: "text-amber-500",
+  },
+  {
+    title: "Invoices (POS)",
+    description: "Generate invoices and manage sales",
+    href: "/dashboard/invoices",
+    icon: Receipt,
+    gradient: "from-sky-500 to-blue-600",
+    bg: "bg-sky-500/10",
+    text: "text-sky-500",
+  },
 ]
 
-const lowStockProducts = products.filter((p) => p.currentStock <= p.reorderLevel)
-const pendingCommissions = commissions.filter((c) => c.status === "pending")
-const totalPendingCommission = pendingCommissions.reduce((sum, c) => sum + c.commissionAmount, 0)
+const reports = [
+  {
+    title: "Commissions",
+    description: "Track and settle school commissions",
+    href: "/dashboard/commissions",
+    icon: BadgePercent,
+    gradient: "from-fuchsia-500 to-pink-600",
+    bg: "bg-fuchsia-500/10",
+    text: "text-fuchsia-500",
+  },
+  {
+    title: "Dashboard",
+    description: "View key performance indicators",
+    href: "/dashboard/overview",
+    icon: LayoutDashboard,
+    gradient: "from-primary to-primary/80",
+    bg: "bg-primary/10",
+    text: "text-primary",
+  },
+  {
+    title: "Reports",
+    description: "Detailed analytics and charts",
+    href: "/dashboard/reports",
+    icon: BarChart3,
+    gradient: "from-indigo-500 to-blue-600", 
+    bg: "bg-indigo-500/10",
+    text: "text-indigo-500",
+  },
+]
 
-const todaySales = invoices
-  .filter((i) => i.date === "2026-02-15")
-  .reduce((sum, i) => sum + i.totalAmount, 0)
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+}
 
-const monthSales = invoices.reduce((sum, i) => sum + i.totalAmount, 0)
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1
+  }
+}
 
 export default function DashboardPage() {
+  const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
   return (
     <>
-      <PageHeader title="Dashboard" />
-      <div className="flex flex-col gap-6 p-6">
-        {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Today's Sales"
-            value={`₹${todaySales.toLocaleString("en-IN", { minimumFractionDigits: 0 })}`}
-            description="from today's invoices"
-            icon={IndianRupee}
-            trend={{ value: "12%", positive: true }}
-          />
-          <StatCard
-            title="Month's Sales"
-            value={`₹${monthSales.toLocaleString("en-IN", { minimumFractionDigits: 0 })}`}
-            description="Feb 2026"
-            icon={TrendingUp}
-            trend={{ value: "8.2%", positive: true }}
-          />
-          <StatCard
-            title="Low Stock Items"
-            value={lowStockProducts.length.toString()}
-            description="items need restocking"
-            icon={AlertTriangle}
-          />
-          <StatCard
-            title="Pending Commissions"
-            value={`₹${totalPendingCommission.toLocaleString("en-IN")}`}
-            description={`${pendingCommissions.length} settlements pending`}
-            icon={Receipt}
-          />
+      <div className="flex flex-col gap-8 p-6 animate-in fade-in duration-500">
+        
+        {/* Welcome Banner */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-8 text-primary-foreground shadow-lg">
+           <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12 translate-x-32 animate-pulse"></div>
+           
+           <div className="relative z-10 flex flex-col md:flex-row justify-between md:items-end gap-4">
+             <div>
+               <div className="flex items-center gap-2 text-primary-foreground/80 mb-2">
+                 <Sparkles className="h-4 w-4" />
+                 <span className="text-sm font-medium">{currentDate}</span>
+               </div>
+               <h1 className="text-4xl font-bold tracking-tight mb-2">Welcome !</h1>
+               <p className="text-primary-foreground/90 max-w-xl text-lg">
+                 Manage your entire stationery business from one central hub. Select a module below to get started.
+               </p>
+             </div>
+             
+             {/* Quick Stats or Actions could go here, for now just a decorative visual or secondary info */}
+           </div>
         </div>
 
-        {/* Charts Row */}
-        <div className="grid gap-6 lg:grid-cols-7">
-          {/* Sales Trend */}
-          <Card className="lg:col-span-4">
-            <CardHeader>
-              <CardTitle className="text-base">Sales Trend</CardTitle>
-              <CardDescription>Monthly sales over last 6 months</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={salesData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(220, 10%, 46%)" }} />
-                  <YAxis className="text-xs" tick={{ fill: "hsl(220, 10%, 46%)" }} />
-                  <Tooltip
-                    formatter={(value: number) => [`₹${value.toLocaleString("en-IN")}`, "Sales"]}
-                    contentStyle={{
-                      backgroundColor: "hsl(0, 0%, 100%)",
-                      border: "1px solid hsl(214, 20%, 90%)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                  />
-                  <Bar dataKey="sales" fill="hsl(211, 100%, 50%)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Management Section */}
+        <section>
+          <div className="flex items-center gap-3 mb-5">
+             <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+             <h2 className="text-2xl font-bold tracking-tight text-foreground">Management</h2>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            {management.map((item) => (
+              <Link href={item.href} key={item.title} className="group outline-none">
+                <Card className="h-full border-muted/60 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/20 overflow-hidden relative bg-card/50 backdrop-blur-sm">
+                  <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                    <div 
+                      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 shadow-inner ${item.bg} ${item.text}`}
+                    >
+                      <item.icon className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">{item.title}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-sm leading-relaxed mb-4">{item.description}</CardDescription>
+                    <span className="flex items-center text-xs font-medium text-primary opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                      Open Module <ArrowRight className="ml-1 h-3 w-3" />
+                    </span>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
 
-          {/* School-wise Sales Pie */}
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle className="text-base">School-wise Sales</CardTitle>
-              <CardDescription>Sales distribution by school</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={240}>
-                <PieChart>
-                  <Pie
-                    data={schoolSalesData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    dataKey="sales"
-                    paddingAngle={4}
-                  >
-                    {schoolSalesData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number) => [`₹${value.toLocaleString("en-IN")}`, "Sales"]}
-                    contentStyle={{
-                      backgroundColor: "hsl(0, 0%, 100%)",
-                      border: "1px solid hsl(214, 20%, 90%)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap gap-3 justify-center">
-                {schoolSalesData.map((s, i) => (
-                  <div key={s.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                    {s.name}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Operations Section */}
+        <section>
+          <div className="flex items-center gap-3 mb-5">
+             <div className="h-8 w-1 bg-gradient-to-b from-teal-500 to-emerald-600 rounded-full"></div>
+             <h2 className="text-2xl font-bold tracking-tight text-foreground">Operations</h2>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            {operations.map((item) => (
+              <Link href={item.href} key={item.title} className="group outline-none">
+                <Card className="h-full border-muted/60 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/20 overflow-hidden relative bg-card/50 backdrop-blur-sm">
+                  <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                    <div 
+                      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 shadow-inner ${item.bg} ${item.text}`}
+                    >
+                      <item.icon className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">{item.title}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-sm leading-relaxed mb-4">{item.description}</CardDescription>
+                    <span className="flex items-center text-xs font-medium text-primary opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                      Open Module <ArrowRight className="ml-1 h-3 w-3" />
+                    </span>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
 
-        {/* Bottom Row */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Low Stock Alerts */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-base">Low Stock Alerts</CardTitle>
-                <CardDescription>Products at or below reorder level</CardDescription>
-              </div>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {lowStockProducts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">All products are well stocked.</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="text-right">Stock</TableHead>
-                      <TableHead className="text-right">Reorder</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lowStockProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell className="text-right">{product.currentStock}</TableCell>
-                        <TableCell className="text-right">{product.reorderLevel}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant={product.currentStock <= product.reorderLevel / 2 ? "destructive" : "secondary"}>
-                            {product.currentStock <= product.reorderLevel / 2 ? "Critical" : "Low"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+        {/* Reports Section */}
+        <section>
+          <div className="flex items-center gap-3 mb-5">
+             <div className="h-8 w-1 bg-gradient-to-b from-violet-500 to-fuchsia-600 rounded-full"></div>
+             <h2 className="text-2xl font-bold tracking-tight text-foreground">Analytics & Reports</h2>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            {reports.map((item) => (
+              <Link href={item.href} key={item.title} className="group outline-none">
+                <Card className="h-full border-muted/60 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/20 overflow-hidden relative bg-card/50 backdrop-blur-sm">
+                  <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                    <div 
+                      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 shadow-inner ${item.bg} ${item.text}`}
+                    >
+                      <item.icon className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">{item.title}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-sm leading-relaxed mb-4">{item.description}</CardDescription>
+                    <span className="flex items-center text-xs font-medium text-primary opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                      View Insights <ArrowRight className="ml-1 h-3 w-3" />
+                    </span>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
 
-          {/* Recent Invoices */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-base">Recent Invoices</CardTitle>
-                <CardDescription>Latest sales transactions</CardDescription>
-              </div>
-              <Receipt className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Student</TableHead>
-                    <TableHead>School</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoices.map((inv) => (
-                    <TableRow key={inv.id}>
-                      <TableCell className="font-mono text-sm">{inv.invoiceNumber}</TableCell>
-                      <TableCell>{inv.studentName}</TableCell>
-                      <TableCell className="text-muted-foreground">{inv.schoolName.split(" ").slice(0, 2).join(" ")}</TableCell>
-                      <TableCell className="text-right font-medium">₹{inv.totalAmount.toLocaleString("en-IN")}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* School Overview */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-base">School Overview</CardTitle>
-              <CardDescription>Active schools and their performance</CardDescription>
-            </div>
-            <GraduationCap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>School</TableHead>
-                  <TableHead className="text-right">Students</TableHead>
-                  <TableHead className="text-right">Total Sales</TableHead>
-                  <TableHead className="text-right">Commission %</TableHead>
-                  <TableHead className="text-right">Commission Earned</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {schools.map((school) => (
-                  <TableRow key={school.id}>
-                    <TableCell className="font-medium">{school.name}</TableCell>
-                    <TableCell className="text-right">{school.totalStudents}</TableCell>
-                    <TableCell className="text-right">₹{school.totalSales.toLocaleString("en-IN")}</TableCell>
-                    <TableCell className="text-right">{school.commissionPercentage}%</TableCell>
-                    <TableCell className="text-right">₹{school.commissionEarned.toLocaleString("en-IN")}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={school.status === "active" ? "default" : "secondary"}>
-                        {school.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
       </div>
     </>
   )

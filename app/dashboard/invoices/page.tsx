@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,8 +31,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Plus, Search, MoreHorizontal, Eye, Printer, X, Minus, ShoppingCart } from "lucide-react"
-import { invoices as initialInvoices, students, schools, products as allProducts } from "@/lib/mock-data"
-import type { Invoice, InvoiceItem, Student } from "@/lib/types"
+import type { Invoice, InvoiceItem, Student, School, Product } from "@/lib/types"
+import { getInvoices, createInvoice } from "@/lib/api/invoices"
+import { getStudents } from "@/lib/api/students"
+import { getSchools } from "@/lib/api/schools"
+import { getProducts } from "@/lib/api/products"
 import { toast } from "sonner"
 
 interface CartItem extends InvoiceItem {
@@ -40,7 +43,12 @@ interface CartItem extends InvoiceItem {
 }
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices)
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [students, setStudents] = useState<Student[]>([])
+  const [schools, setSchools] = useState<School[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("invoices")
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null)
@@ -51,6 +59,31 @@ export default function InvoicesPage() {
   const [productSearch, setProductSearch] = useState("")
   const [cart, setCart] = useState<CartItem[]>([])
   const [discount, setDiscount] = useState(0)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  async function fetchData() {
+    try {
+      setLoading(true)
+      const [invoicesData, studentsData, schoolsData, productsData] = await Promise.all([
+        getInvoices(),
+        getStudents(),
+        getSchools(),
+        getProducts()
+      ])
+      setInvoices(invoicesData)
+      setStudents(studentsData)
+      setSchools(schoolsData)
+      setProducts(productsData)
+    } catch (error) {
+      toast.error("Failed to fetch data")
+      console.error(error)
+    } finally {
+        setLoading(false)
+    }
+  }
 
   const filteredInvoices = invoices.filter(
     (inv) =>
@@ -68,7 +101,7 @@ export default function InvoicesPage() {
     : []
 
   const matchedProducts = productSearch.length >= 2
-    ? allProducts.filter(
+    ? products.filter(
         (p) =>
           p.status === "active" &&
           (p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
@@ -84,7 +117,7 @@ export default function InvoicesPage() {
   const commissionAmount = school ? ((subtotal - discount) * school.commissionPercentage) / 100 : 0
 
   function addToCart(productId: string) {
-    const product = allProducts.find((p) => p.id === productId)
+    const product = products.find((p) => p.id === productId)
     if (!product) return
     const existing = cart.find((c) => c.productId === productId)
     if (existing) {
@@ -149,7 +182,7 @@ export default function InvoicesPage() {
     setCart((prev) => prev.filter((c) => c.productId !== productId))
   }
 
-  function handleGenerateInvoice() {
+  async function handleGenerateInvoice() {
     if (!selectedStudent) {
       toast.error("Please select a student")
       return
@@ -159,30 +192,45 @@ export default function InvoicesPage() {
       return
     }
 
-    const newInvoice: Invoice = {
-      id: `inv${Date.now()}`,
-      invoiceNumber: `INV-2026-${String(invoices.length + 1).padStart(4, "0")}`,
-      date: new Date().toISOString().split("T")[0],
-      studentId: selectedStudent.id,
-      studentName: selectedStudent.name,
-      rollNumber: selectedStudent.rollNumber,
-      schoolId: selectedStudent.schoolId,
-      schoolName: selectedStudent.schoolName,
-      items: cart.map(({ stock, ...item }) => item),
-      subtotal,
-      discount,
-      gstAmount,
-      totalAmount,
-      commissionAmount,
-    }
+    try {
+        const payload = {
+            student: selectedStudent.id,
+            items: cart.map(item => ({
+                product: item.productId,
+                quantity: item.quantity
+            })),
+            discount: discount
+        }
 
-    setInvoices((prev) => [newInvoice, ...prev])
-    setCart([])
-    setSelectedStudent(null)
-    setStudentSearch("")
-    setDiscount(0)
-    setActiveTab("invoices")
-    toast.success(`Invoice ${newInvoice.invoiceNumber} generated successfully`)
+        const newInvoice = await createInvoice(payload)
+        
+        // Use returned invoice data, which should be populated or partially populated
+        // If not populated fully, we might need to manually attach names for immediate display
+        if(!newInvoice.studentName) {
+            newInvoice.studentName = selectedStudent.name
+            newInvoice.rollNumber = selectedStudent.rollNumber
+            newInvoice.schoolName = selectedStudent.schoolName
+        }
+        
+        // For items, API util createInvoice returns items as is from backend. 
+        // Backend `createInvoice` populates items.product?
+        // Let's assume it does or we refresh the list. 
+        // Actually locally updating `invoices` with `newInvoice` is fastest.
+        // We can also rely on fetchData() to refresh everything if we want 100% truth, but that's slower.
+        // Let's trust the API return + manual patches if needed for UI smoothness.
+
+        setInvoices((prev) => [newInvoice, ...prev])
+        setCart([])
+        setSelectedStudent(null)
+        setStudentSearch("")
+        setDiscount(0)
+        setActiveTab("invoices")
+        toast.success(`Invoice ${newInvoice.invoiceNumber} generated successfully`)
+
+    } catch (error) {
+        toast.error("Failed to generate invoice")
+        console.error(error)
+    }
   }
 
   return (

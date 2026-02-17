@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,17 +38,45 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, AlertTriangle } from "lucide-react"
-import { products as initialProducts, categories, suppliers } from "@/lib/mock-data"
-import type { Product } from "@/lib/types"
+import type { Product, Category, Supplier } from "@/lib/types" // Import types
+import { getProducts, createProduct, updateProduct, deleteProduct } from "@/lib/api/products"
+import { getCategories } from "@/lib/api/categories"
+import { getSuppliers } from "@/lib/api/suppliers"
 import { toast } from "sonner"
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>(initialProducts)
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  async function fetchData() {
+    try {
+      setLoading(true)
+      const [productsData, categoriesData, suppliersData] = await Promise.all([
+        getProducts(),
+        getCategories(),
+        getSuppliers()
+      ])
+      setProducts(productsData)
+      setCategories(categoriesData)
+      setSuppliers(suppliersData)
+    } catch (error) {
+      toast.error("Failed to fetch data")
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
@@ -59,32 +87,54 @@ export default function ProductsPage() {
     return matchesSearch && matchesCategory && matchesStatus
   })
 
-  function handleAddProduct(formData: FormData) {
-    const categoryId = formData.get("categoryId") as string
-    const category = categories.find((c) => c.id === categoryId)
-    const newProduct: Product = {
-      id: `p${Date.now()}`,
-      name: formData.get("name") as string,
-      productCode: formData.get("productCode") as string,
-      barcode: formData.get("barcode") as string,
-      categoryId,
-      categoryName: category?.name || "",
-      purchasePrice: Number(formData.get("purchasePrice")),
-      sellingPrice: Number(formData.get("sellingPrice")),
-      gstRate: Number(formData.get("gstRate")),
-      currentStock: Number(formData.get("currentStock")),
-      reorderLevel: Number(formData.get("reorderLevel")),
-      supplier: formData.get("supplier") as string,
-      status: "active",
+  async function handleAddProduct(formData: FormData) {
+    try {
+      const categoryId = formData.get("categoryId") as string
+      const category = categories.find((c) => c.id === categoryId)
+      
+      const payload = {
+        name: formData.get("name"),
+        productCode: formData.get("productCode"),
+        barcode: formData.get("barcode"),
+        category: categoryId,
+        purchasePrice: Number(formData.get("purchasePrice")),
+        sellingPrice: Number(formData.get("sellingPrice")),
+        gstRate: Number(formData.get("gstRate")),
+        stock: Number(formData.get("currentStock")),
+        reorderLevel: Number(formData.get("reorderLevel")),
+        supplier: formData.get("supplier"), // Need supplier ID ideally, but mock UI used name. Let's fix UI to use ID if possible or map back.
+        // Wait, the API utility for createProduct expects usage of Types matching what backend expects.
+        // Backend text earlier showed it expects 'supplier' as a field? Actually model usually refs Supplier ID.
+        // Let's modify the form to use supplier ID for the API, but `formData.get("supplier")` comes from the select.
+        // We will update the select below to use supplier ID as value.
+      }
+      
+      // If the backend expects supplier ID, we should ensure the form sends it.
+      // I will update the SELECT element below to use ID values.
+      
+      const newProduct = await createProduct(payload)
+      
+      // Manually populate category name for immediate display if not returned populated
+      if (!newProduct.categoryName && category) {
+          newProduct.categoryName = category.name
+      }
+
+      setProducts((prev) => [newProduct, ...prev])
+      setIsAddOpen(false)
+      toast.success("Product added successfully")
+    } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to add product")
     }
-    setProducts((prev) => [...prev, newProduct])
-    setIsAddOpen(false)
-    toast.success("Product added successfully")
   }
 
-  function handleDeleteProduct(id: string) {
-    setProducts((prev) => prev.filter((p) => p.id !== id))
-    toast.success("Product deleted successfully")
+  async function handleDeleteProduct(id: string) {
+    try {
+        await deleteProduct(id)
+        setProducts((prev) => prev.filter((p) => p.id !== id))
+        toast.success("Product deleted successfully")
+    } catch (error) {
+        toast.error("Failed to delete product")
+    }
   }
 
   return (
@@ -166,7 +216,7 @@ export default function ProductsPage() {
                       <select name="supplier" id="supplier" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <option value="">Select</option>
                         {suppliers.map((s) => (
-                          <option key={s.id} value={s.name}>{s.name}</option>
+                          <option key={s.id} value={s.id}>{s.name}</option> // Use ID for API
                         ))}
                       </select>
                     </div>

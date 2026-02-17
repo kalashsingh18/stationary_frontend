@@ -26,6 +26,7 @@ export interface Student {
 export interface Category {
   id: string
   name: string
+  description?: string
   productCount: number
 }
 
@@ -48,7 +49,12 @@ export interface Product {
 export interface Supplier {
   id: string
   name: string
-  phone: string
+  code: string
+  contact?: {
+    phone?: string
+    email?: string
+    contactPerson?: string
+  }
   gstin: string
   paymentTerms: string
   address: string
@@ -112,4 +118,18 @@ export interface Commission {
   status: "pending" | "settled"
   settledDate?: string
   reference?: string
+}
+
+export interface Admin {
+  id: string
+  username: string
+  email: string
+  role: string
+}
+
+export interface AuthResponse {
+  success: boolean
+  token: string
+  admin: Admin
+  message?: string
 }

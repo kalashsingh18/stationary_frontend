@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,12 +38,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Plus, Search, MoreHorizontal, Eye, CheckCircle, Trash2, X } from "lucide-react"
-import { purchaseOrders as initialPurchases, suppliers, products } from "@/lib/mock-data"
-import type { PurchaseOrder, PurchaseItem } from "@/lib/types"
+import type { PurchaseOrder, PurchaseItem, Supplier, Product } from "@/lib/types"
+import { getPurchases, createPurchase, updatePurchaseStatus } from "@/lib/api/purchases"
+import { getSuppliers } from "@/lib/api/suppliers"
+import { getProducts } from "@/lib/api/products"
 import { toast } from "sonner"
 
 export default function PurchasesPage() {
-  const [purchases, setPurchases] = useState<PurchaseOrder[]>(initialPurchases)
+  const [purchases, setPurchases] = useState<PurchaseOrder[]>([])
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isAddOpen, setIsAddOpen] = useState(false)
@@ -55,6 +61,29 @@ export default function PurchasesPage() {
   const [selectedProductId, setSelectedProductId] = useState("")
   const [selectedQty, setSelectedQty] = useState(1)
   const [selectedPrice, setSelectedPrice] = useState(0)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  async function fetchData() {
+    try {
+      setLoading(true)
+      const [purchasesData, suppliersData, productsData] = await Promise.all([
+        getPurchases(),
+        getSuppliers(),
+        getProducts()
+      ])
+      setPurchases(purchasesData)
+      setSuppliers(suppliersData)
+      setProducts(productsData)
+    } catch (error) {
+      toast.error("Failed to fetch data")
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredPurchases = purchases.filter((po) => {
     const matchesSearch =
@@ -97,35 +126,63 @@ export default function PurchasesPage() {
     setNewItems((prev) => prev.filter((i) => i.productId !== productId))
   }
 
-  function handleCreatePO() {
+  async function handleCreatePO() {
     if (!newSupplierId || newItems.length === 0) {
       toast.error("Please select a supplier and add at least one item")
       return
     }
-    const supplier = suppliers.find((s) => s.id === newSupplierId)
-    const totalAmount = newItems.reduce((sum, i) => sum + i.total, 0)
-    const newPO: PurchaseOrder = {
-      id: `po${Date.now()}`,
-      purchaseNumber: `PO-2026-${String(purchases.length + 1).padStart(3, "0")}`,
-      supplierId: newSupplierId,
-      supplierName: supplier?.name || "",
-      date: new Date().toISOString().split("T")[0],
-      items: newItems,
-      totalAmount,
-      paymentStatus: "pending",
+    
+    try {
+        const payload = {
+            supplier: newSupplierId,
+            items: newItems.map(item => ({
+                product: item.productId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice
+            })),
+            notes: "" // Optional
+        }
+
+        const newPO = await createPurchase(payload)
+        
+        // Manually populate names if API doesn't return fully populated or we just want instant feedback
+        // The API util creates a PO object but names might be missing if backend doesn't populate nested deep or utilizes IDs
+        // My createPurchase util attempts to return matched types.
+        if (!newPO.supplierName) {
+            const s = suppliers.find(sup => sup.id === newSupplierId)
+            if (s) newPO.supplierName = s.name
+        }
+        
+        // Items might need product names if backend valid returns IDs
+        newPO.items = newPO.items.map(item => {
+             const p = products.find(prod => prod.id === item.productId || prod.id === (item as any).product)
+             return {
+                 ...item,
+                 productName: item.productName || p?.name || ""
+             }
+        })
+
+        setPurchases((prev) => [newPO, ...prev])
+        setIsAddOpen(false)
+        setNewSupplierId("")
+        setNewItems([])
+        toast.success("Purchase order created successfully")
+    } catch (error) {
+        toast.error("Failed to create purchase order")
+        console.error(error)
     }
-    setPurchases((prev) => [newPO, ...prev])
-    setIsAddOpen(false)
-    setNewSupplierId("")
-    setNewItems([])
-    toast.success("Purchase order created successfully")
   }
 
-  function markAsPaid(id: string) {
-    setPurchases((prev) =>
-      prev.map((po) => (po.id === id ? { ...po, paymentStatus: "paid" as const } : po)),
-    )
-    toast.success("Payment status updated")
+  async function markAsPaid(id: string) {
+    try {
+        await updatePurchaseStatus(id, "paid")
+        setPurchases((prev) =>
+          prev.map((po) => (po.id === id ? { ...po, paymentStatus: "paid" as const } : po)),
+        )
+        toast.success("Payment status updated")
+    } catch (error) {
+        toast.error("Failed to update status")
+    }
   }
 
   return (

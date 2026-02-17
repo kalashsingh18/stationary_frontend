@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/sidebar"
 
 const mainNav = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Home", href: "/dashboard", icon: Store },
 ]
 
 const managementNav = [
@@ -51,6 +51,7 @@ const operationsNav = [
 
 const reportsNav = [
   { title: "Commissions", href: "/dashboard/commissions", icon: BadgePercent },
+  { title: "Dashboard", href: "/dashboard/overview", icon: LayoutDashboard },
   { title: "Reports", href: "/dashboard/reports", icon: BarChart3 },
 ]
 

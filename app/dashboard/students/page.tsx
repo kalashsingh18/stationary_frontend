@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,12 +38,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Upload, FileSpreadsheet } from "lucide-react"
-import { students as initialStudents, schools, classOptions, sectionOptions } from "@/lib/mock-data"
-import type { Student } from "@/lib/types"
+import { classOptions, sectionOptions } from "@/lib/mock-data"
+import type { Student, School } from "@/lib/types"
+import { getStudents, createStudent } from "@/lib/api/students"
+import { getSchools } from "@/lib/api/schools"
 import { toast } from "sonner"
 
 export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>(initialStudents)
+  const [students, setStudents] = useState<Student[]>([])
+  const [schools, setSchools] = useState<School[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [schoolFilter, setSchoolFilter] = useState<string>("all")
   const [classFilter, setClassFilter] = useState<string>("all")
@@ -54,6 +58,26 @@ export default function StudentsPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  async function fetchData() {
+    try {
+      setLoading(true)
+      const [studentsData, schoolsData] = await Promise.all([
+        getStudents(),
+        getSchools()
+      ])
+      setStudents(studentsData)
+      setSchools(schoolsData)
+    } catch (error) {
+      toast.error("Failed to fetch data")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const filteredStudents = students.filter((student) => {
     const matchesSearch =
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -63,22 +87,35 @@ export default function StudentsPage() {
     return matchesSearch && matchesSchool && matchesClass
   })
 
-  function handleAddStudent(formData: FormData) {
-    const schoolId = formData.get("schoolId") as string
-    const school = schools.find((s) => s.id === schoolId)
-    const newStudent: Student = {
-      id: `st${Date.now()}`,
-      rollNumber: formData.get("rollNumber") as string,
-      name: formData.get("name") as string,
-      class: formData.get("class") as string,
-      section: formData.get("section") as string,
-      phone: (formData.get("phone") as string) || undefined,
-      schoolId,
-      schoolName: school?.name || "",
+  async function handleAddStudent(formData: FormData) {
+    try {
+      const schoolId = formData.get("schoolId") as string
+      const school = schools.find((s) => s.id === schoolId)
+      
+      const payload = {
+        rollNumber: formData.get("rollNumber"),
+        name: formData.get("name"),
+        class: formData.get("class"),
+        section: formData.get("section"),
+        school: schoolId,
+        contact: {
+          phone: formData.get("phone") || undefined,
+          email: "" // Optional
+        }
+      }
+
+      const newStudent = await createStudent(payload)
+      // Enriched student with school name for display if API didn't return it populated deep enough
+      if (!newStudent.schoolName && school) {
+          newStudent.schoolName = school.name
+      }
+      
+      setStudents((prev) => [newStudent, ...prev])
+      setIsAddOpen(false)
+      toast.success("Student added successfully")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to add student")
     }
-    setStudents((prev) => [...prev, newStudent])
-    setIsAddOpen(false)
-    toast.success("Student added successfully")
   }
 
   function handleBulkUpload() {

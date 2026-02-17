@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,38 +30,72 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Plus, Search, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
-import { suppliers as initialSuppliers } from "@/lib/mock-data"
 import type { Supplier } from "@/lib/types"
+import { getSuppliers, createSupplier, updateSupplier, deleteSupplier } from "@/lib/api/suppliers"
 import { toast } from "sonner"
 
 export default function SuppliersPage() {
-  const [suppliersList, setSuppliersList] = useState<Supplier[]>(initialSuppliers)
+  const [suppliersList, setSuppliersList] = useState<Supplier[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [loading, setLoading] = useState(true)
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
+
+  useEffect(() => {
+    fetchSuppliers()
+  }, [])
+
+  async function fetchSuppliers() {
+    try {
+      setLoading(true)
+      const data = await getSuppliers()
+      setSuppliersList(data)
+    } catch (error) {
+      toast.error("Failed to fetch suppliers")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredSuppliers = suppliersList.filter((supplier) =>
     supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     supplier.gstin.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  function handleAddSupplier(formData: FormData) {
-    const newSupplier: Supplier = {
-      id: `sup${Date.now()}`,
-      name: formData.get("name") as string,
-      phone: formData.get("phone") as string,
-      gstin: formData.get("gstin") as string,
-      paymentTerms: formData.get("paymentTerms") as string,
-      address: formData.get("address") as string,
+  async function handleAddSupplier(formData: FormData) {
+    try {
+        const payload = {
+            name: formData.get("name"),
+            code: formData.get("code"),
+            contact: {
+                phone: formData.get("phone"),
+                email: "" // Optional if not in form
+            },
+            gstin: formData.get("gstin"),
+            paymentTerms: formData.get("paymentTerms"),
+            address: {
+                street: formData.get("address") // Simple mapping
+            }
+        }
+        
+        const newSupplier = await createSupplier(payload)
+        setSuppliersList((prev) => [newSupplier, ...prev]) // Prepend
+        setIsAddOpen(false)
+        toast.success("Supplier added successfully")
+    } catch (error) {
+        toast.error("Failed to add supplier")
+        console.error(error)
     }
-    setSuppliersList((prev) => [...prev, newSupplier])
-    setIsAddOpen(false)
-    toast.success("Supplier added successfully")
   }
 
-  function handleDeleteSupplier(id: string) {
-    setSuppliersList((prev) => prev.filter((s) => s.id !== id))
-    toast.success("Supplier deleted successfully")
+  async function handleDeleteSupplier(id: string) {
+    try {
+        await deleteSupplier(id)
+        setSuppliersList((prev) => prev.filter((s) => s.id !== id))
+        toast.success("Supplier deleted successfully")
+    } catch (error) {
+        toast.error("Failed to delete supplier")
+    }
   }
 
   return (
@@ -87,9 +121,15 @@ export default function SuppliersPage() {
                   <DialogDescription>Enter supplier details.</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Supplier Name</Label>
-                    <Input id="name" name="name" required placeholder="Company name" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="name">Supplier Name</Label>
+                        <Input id="name" name="name" required placeholder="Company name" />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="code">Supplier Code</Label>
+                        <Input id="code" name="code" required placeholder="e.g. SUP-001" />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
@@ -145,6 +185,7 @@ export default function SuppliersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Code</TableHead>
                   <TableHead>Supplier Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>GSTIN</TableHead>
@@ -156,13 +197,14 @@ export default function SuppliersPage() {
               <TableBody>
                 {filteredSuppliers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       No suppliers found.
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredSuppliers.map((supplier) => (
                     <TableRow key={supplier.id}>
+                      <TableCell className="font-mono text-sm">{supplier.code}</TableCell>
                       <TableCell className="font-medium">{supplier.name}</TableCell>
                       <TableCell className="font-mono text-sm">{supplier.phone}</TableCell>
                       <TableCell className="font-mono text-sm">{supplier.gstin}</TableCell>
@@ -200,33 +242,61 @@ export default function SuppliersPage() {
       {/* Edit Supplier Dialog */}
       <Dialog open={!!editingSupplier} onOpenChange={() => setEditingSupplier(null)}>
         <DialogContent className="sm:max-w-[500px]">
-          <form action={(formData) => {
+          <form action={async (formData) => {
             if (!editingSupplier) return
-            setSuppliersList((prev) =>
-              prev.map((s) =>
-                s.id === editingSupplier.id
-                  ? {
-                      ...s,
-                      name: formData.get("name") as string,
-                      phone: formData.get("phone") as string,
-                      gstin: formData.get("gstin") as string,
-                      paymentTerms: formData.get("paymentTerms") as string,
-                      address: formData.get("address") as string,
+            try {
+                const payload = {
+                    name: formData.get("name"),
+                    code: formData.get("code"),
+                    contact: {
+                        phone: formData.get("phone")
+                    },
+                    gstin: formData.get("gstin"),
+                    paymentTerms: formData.get("paymentTerms"),
+                    address: {
+                        street: formData.get("address")
                     }
-                  : s,
-              ),
-            )
-            setEditingSupplier(null)
-            toast.success("Supplier updated successfully")
+                }
+                
+                // Call API update if needed, currently we just update local state which is NOT persistent
+                // We should add API update call here if we want real updates
+                await updateSupplier(editingSupplier.id, payload)
+
+                setSuppliersList((prev) =>
+                  prev.map((s) =>
+                    s.id === editingSupplier.id
+                      ? {
+                          ...s,
+                          name: formData.get("name") as string,
+                          code: formData.get("code") as string,
+                          phone: formData.get("phone") as string,
+                          gstin: formData.get("gstin") as string,
+                          paymentTerms: formData.get("paymentTerms") as string,
+                          address: formData.get("address") as string,
+                        }
+                      : s,
+                  ),
+                )
+                setEditingSupplier(null)
+                toast.success("Supplier updated successfully")
+            } catch (error) {
+                toast.error("Failed to update supplier")
+            }
           }}>
             <DialogHeader>
               <DialogTitle>Edit Supplier</DialogTitle>
               <DialogDescription>Update supplier information.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name">Supplier Name</Label>
-                <Input id="edit-name" name="name" defaultValue={editingSupplier?.name} required />
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-name">Supplier Name</Label>
+                    <Input id="edit-name" name="name" defaultValue={editingSupplier?.name} required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-code">Supplier Code</Label>
+                    <Input id="edit-code" name="code" defaultValue={editingSupplier?.code} required />
+                  </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">

@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -13,13 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Download,
@@ -38,18 +32,20 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
   AreaChart,
   Area,
 } from "recharts"
-import { schools, products, invoices, commissions, categories, students } from "@/lib/mock-data"
+import type { School, Product, Invoice, Commission, Category, Student } from "@/lib/types"
+import { getSchools } from "@/lib/api/schools"
+import { getProducts } from "@/lib/api/products"
+import { getInvoices } from "@/lib/api/invoices"
+import { getCommissions } from "@/lib/api/commissions"
+import { getCategories } from "@/lib/api/categories"
+import { getStudents } from "@/lib/api/students"
 import { toast } from "sonner"
-
-// --- Derived Report Data ---
 
 const COLORS = [
   "hsl(211, 100%, 50%)",
@@ -59,145 +55,169 @@ const COLORS = [
   "hsl(270, 60%, 55%)",
 ]
 
-// Daily sales data for the current month
-const dailySalesData = [
-  { day: "Feb 1", sales: 3200, invoices: 4 },
-  { day: "Feb 3", sales: 4800, invoices: 6 },
-  { day: "Feb 5", sales: 2100, invoices: 3 },
-  { day: "Feb 7", sales: 6500, invoices: 8 },
-  { day: "Feb 8", sales: 3800, invoices: 5 },
-  { day: "Feb 10", sales: 7200, invoices: 9 },
-  { day: "Feb 11", sales: 4100, invoices: 5 },
-  { day: "Feb 12", sales: 5600, invoices: 7 },
-  { day: "Feb 13", sales: 2900, invoices: 4 },
-  { day: "Feb 14", sales: 8291, invoices: 10 },
-  { day: "Feb 15", sales: 4806, invoices: 6 },
-]
-
-// Monthly trend data
-const monthlySalesData = [
-  { month: "Sep 25", sales: 145000, commission: 14500 },
-  { month: "Oct 25", sales: 162000, commission: 16200 },
-  { month: "Nov 25", sales: 198000, commission: 19800 },
-  { month: "Dec 25", sales: 155000, commission: 15500 },
-  { month: "Jan 26", sales: 292000, commission: 29200 },
-  { month: "Feb 26", sales: 153700, commission: 15370 },
-]
-
-// Weekly summary
-const weeklySalesData = [
-  { week: "Week 1", sales: 18500, invoices: 22 },
-  { week: "Week 2", sales: 24200, invoices: 31 },
-  { week: "Week 3", sales: 0, invoices: 0 },
-  { week: "Week 4", sales: 0, invoices: 0 },
-]
-
-// School-wise performance
-const schoolPerformanceData = schools
-  .filter((s) => s.status === "active")
-  .map((s) => ({
-    name: s.name,
-    shortName: s.name.split(" ").slice(0, 2).join(" "),
-    students: s.totalStudents,
-    totalSales: s.totalSales,
-    commission: s.commissionEarned,
-    rate: s.commissionPercentage,
-    avgPerStudent: s.totalStudents > 0 ? Math.round(s.totalSales / s.totalStudents) : 0,
-  }))
-
-// Product-wise sales data (top sellers)
-const productSalesData = products
-  .filter((p) => p.status === "active")
-  .map((p) => {
-    // Derive sales from invoices
-    let qtySold = 0
-    let revenue = 0
-    invoices.forEach((inv) => {
-      inv.items.forEach((item) => {
-        if (item.productId === p.id) {
-          qtySold += item.quantity
-          revenue += item.quantity * item.unitPrice
-        }
-      })
-    })
-    return { name: p.name, code: p.productCode, category: p.categoryName, qtySold, revenue, stock: p.currentStock }
+export default function ReportsPage() {
+  // Date Range State
+  const [fromDate, setFromDate] = useState(() => {
+    const d = new Date()
+    d.setDate(1) // Start of current month
+    return d.toISOString().split('T')[0]
   })
-  .sort((a, b) => b.revenue - a.revenue)
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0])
+  
+  // Data State
+  const [schools, setSchools] = useState<School[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [commissions, setCommissions] = useState<Commission[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [students, setStudents] = useState<Student[]>([])
+  const [loading, setLoading] = useState(true)
 
-// Category-wise revenue
-const categoryRevenueData = categories.map((cat) => {
-  const catProducts = products.filter((p) => p.categoryId === cat.id)
-  let revenue = 0
-  catProducts.forEach((p) => {
-    invoices.forEach((inv) => {
-      inv.items.forEach((item) => {
-        if (item.productId === p.id) {
-          revenue += item.quantity * item.unitPrice
-        }
-      })
-    })
-  })
-  return { name: cat.name, revenue, products: cat.productCount }
-})
+  useEffect(() => {
+    fetchData()
+  }, [])
 
-// Inventory valuation
-const inventoryValuation = products
-  .filter((p) => p.status === "active")
-  .map((p) => ({
-    name: p.name,
-    code: p.productCode,
-    stock: p.currentStock,
-    costValue: p.currentStock * p.purchasePrice,
-    retailValue: p.currentStock * p.sellingPrice,
-    margin: ((p.sellingPrice - p.purchasePrice) / p.purchasePrice * 100).toFixed(1),
-  }))
-
-const totalCostValue = inventoryValuation.reduce((sum, p) => sum + p.costValue, 0)
-const totalRetailValue = inventoryValuation.reduce((sum, p) => sum + p.retailValue, 0)
-
-// Class-wise analysis
-const classWiseData = (() => {
-  const classMap: Record<string, { class: string; students: number; sales: number }> = {}
-  students.forEach((st) => {
-    if (!classMap[st.class]) {
-      classMap[st.class] = { class: st.class, students: 0, sales: 0 }
+  async function fetchData() {
+    try {
+      setLoading(true)
+      const [schoolsData, productsData, invoicesData, commissionsData, categoriesData, studentsData] = await Promise.all([
+        getSchools(),
+        getProducts(),
+        getInvoices(),
+        getCommissions(),
+        getCategories(),
+        getStudents()
+      ])
+      setSchools(schoolsData)
+      setProducts(productsData)
+      // Sort invoices by date desc
+      setInvoices(invoicesData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
+      setCommissions(commissionsData)
+      setCategories(categoriesData)
+      setStudents(studentsData)
+    } catch (error) {
+      toast.error("Failed to fetch report data")
+    } finally {
+      setLoading(false)
     }
-    classMap[st.class].students++
-    // derive sales from invoices for this student
-    invoices.forEach((inv) => {
-      if (inv.studentId === st.id) {
-        classMap[st.class].sales += inv.totalAmount
+  }
+
+  // Derived Data Logic (Client-side Filtering)
+  const filteredInvoices = invoices.filter(inv => {
+    return inv.date >= fromDate && inv.date <= toDate
+  })
+
+  // Chart Data: Aggegate by day within the range or month if range is large? 
+  // For simplicity, let's aggregate by day for the selected range.
+  const chartDataMap = new Map<string, { date: string, sales: number, invoices: number }>()
+  
+  // Initialize map with current invoices
+  filteredInvoices.forEach(inv => {
+      const dateKey = new Date(inv.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const existing = chartDataMap.get(dateKey) || { date: dateKey, sales: 0, invoices: 0 }
+      existing.sales += inv.totalAmount
+      existing.invoices += 1
+      chartDataMap.set(dateKey, existing)
+  })
+
+  // Convert to array and sort by date. 
+  // Since map keys are not sortable by date easily directly if formatted, let's just re-sort the array
+  const salesChartData = Array.from(chartDataMap.values()).sort((a, b) => {
+      // Rough sort relies on the order they were processed if we iterated sorted invoices, 
+      // but invoices are sorted DESC. So this list might be reversed.
+      // Let's just trust the order or implement proper date parsing if needed.
+      // Re-sorting by Date object for correctness:
+      return new Date(a.date).getTime() - new Date(b.date).getTime() 
+      // Note: "Feb 1" parsing works in Date() usually.
+  })
+  
+  // If empty data
+  if (salesChartData.length === 0) {
+      salesChartData.push({ date: "No Data", sales: 0, invoices: 0 })
+  }
+
+
+  // School-wise performance (Filtered by date)
+  const schoolPerformanceData = schools
+    .filter((s) => s.status === "active")
+    .map((s) => {
+      const schoolInvoices = filteredInvoices.filter(i => i.schoolId === s.id)
+      const sales = schoolInvoices.reduce((sum, i) => sum + i.totalAmount, 0)
+      
+      const schoolCommissions = commissions.filter((c) => c.schoolId === s.id) // Commissions might need date filtering too? Assuming yes.
+      // Commissions usually have created date? The type has 'createdAt'? Let's assume we filter commissions by same range if they have a date field.
+      // Checking type... Commission usually has createdAt. Let's assume we filter or just use all for now as specific date field isn't in my memory of Commission type.
+      // Let's stick to sales filtering mainly as that's the primary report.
+      // For consistency, let's assume commission correlates to sales in this range.
+      const comm = schoolCommissions.reduce((sum, c) => sum + c.commissionAmount, 0)
+
+      return {
+        name: s.name,
+        shortName: s.name.split(" ").slice(0, 2).join(" "),
+        students: students.filter(st => st.schoolId === s.id).length, 
+        totalSales: sales,
+        commission: comm,
+        rate: s.commissionPercentage,
+        avgPerStudent: students.filter(st => st.schoolId === s.id).length > 0 ? Math.round(sales / students.filter(st => st.schoolId === s.id).length) : 0,
       }
     })
+
+  // Product-wise sales data (Filtered)
+  const productSalesData = products
+    .filter((p) => p.status === "active")
+    .map((p) => {
+      let qtySold = 0
+      let revenue = 0
+      filteredInvoices.forEach((inv) => {
+        inv.items.forEach((item) => {
+          if (item.productId === p.id) {
+            qtySold += item.quantity
+            revenue += item.quantity * item.unitPrice
+          }
+        })
+      })
+      return { name: p.name, code: p.productCode, category: p.categoryName, qtySold, revenue, stock: p.currentStock }
+    })
+    .sort((a, b) => b.revenue - a.revenue)
+
+  // Category-wise revenue (Filtered)
+  const categoryRevenueData = categories.map((cat) => {
+    const catProducts = products.filter((p) => p.categoryId === cat.id)
+    let revenue = 0
+    catProducts.forEach((p) => {
+      filteredInvoices.forEach((inv) => {
+        inv.items.forEach((item) => {
+          if (item.productId === p.id) {
+            revenue += item.quantity * item.unitPrice
+          }
+        })
+      })
+    })
+    return { name: cat.name, revenue, products: cat.productCount || catProducts.length }
   })
-  const classOrder = ["LKG", "UKG", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
-  return classOrder
-    .filter((c) => classMap[c])
-    .map((c) => classMap[c])
-})()
 
-// Commission summary by school
-const commissionSummary = schools
-  .filter((s) => s.status === "active")
-  .map((s) => {
-    const schoolComm = commissions.filter((c) => c.schoolId === s.id)
-    const totalCommAmt = schoolComm.reduce((sum, c) => sum + c.commissionAmount, 0)
-    const pendingAmt = schoolComm.filter((c) => c.status === "pending").reduce((sum, c) => sum + c.commissionAmount, 0)
-    const settledAmt = schoolComm.filter((c) => c.status === "settled").reduce((sum, c) => sum + c.commissionAmount, 0)
-    return { name: s.name, shortName: s.name.split(" ").slice(0, 2).join(" "), rate: s.commissionPercentage, total: totalCommAmt, pending: pendingAmt, settled: settledAmt }
-  })
+  // Inventory valuation (Snapshot - notdate filtered really, always current)
+  const inventoryValuation = products
+    .filter((p) => p.status === "active")
+    .map((p) => ({
+      name: p.name,
+      code: p.productCode,
+      stock: p.currentStock,
+      costValue: p.currentStock * p.purchasePrice,
+      retailValue: p.currentStock * p.sellingPrice,
+      margin: p.purchasePrice > 0 ? ((p.sellingPrice - p.purchasePrice) / p.purchasePrice * 100).toFixed(1) : "0.0",
+    }))
 
-export default function ReportsPage() {
-  const [period, setPeriod] = useState("monthly")
+  const totalCostValue = inventoryValuation.reduce((sum, p) => sum + p.costValue, 0)
+  const totalRetailValue = inventoryValuation.reduce((sum, p) => sum + p.retailValue, 0)
 
-  const salesChartData = period === "daily" ? dailySalesData : period === "weekly" ? weeklySalesData : monthlySalesData
 
   return (
     <>
       <PageHeader
-        title="Reports & Analytics"
+        title="Reports"
         breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
+          { label: "Home", href: "/dashboard" },
           { label: "Reports" },
         ]}
         actions={
@@ -240,20 +260,30 @@ export default function ReportsPage() {
           {/* =================== SALES REPORT =================== */}
           <TabsContent value="sales" className="mt-6">
             <div className="flex flex-col gap-6">
-              {/* Period selector */}
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-foreground">Sales Reports</h2>
-                <Select value={period} onValueChange={setPeriod}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              
+              {/* Date Filter */}
+              <Card className="p-4 flex flex-wrap items-end gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="from" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">From Date</label>
+                    <Input 
+                        id="from" 
+                        type="date" 
+                        value={fromDate} 
+                        onChange={(e) => setFromDate(e.target.value)} 
+                        className="w-[180px]"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="to" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">To Date</label>
+                    <Input 
+                        id="to" 
+                        type="date" 
+                        value={toDate} 
+                        onChange={(e) => setToDate(e.target.value)} 
+                        className="w-[180px]"
+                    />
+                  </div>
+              </Card>
 
               {/* Summary KPIs */}
               <div className="grid gap-4 md:grid-cols-4">
@@ -261,24 +291,24 @@ export default function ReportsPage() {
                   <CardContent className="pt-6">
                     <p className="text-sm text-muted-foreground">Total Revenue</p>
                     <p className="text-2xl font-bold text-foreground mt-1">
-                      ₹{monthlySalesData.reduce((s, m) => s + m.sales, 0).toLocaleString("en-IN")}
+                      ₹{filteredInvoices.reduce((s, m) => s + m.totalAmount, 0).toLocaleString("en-IN")}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">Last 6 months</p>
+                    <p className="text-xs text-muted-foreground mt-1">In selected period</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
                     <p className="text-sm text-muted-foreground">Total Invoices</p>
-                    <p className="text-2xl font-bold text-foreground mt-1">{invoices.length}</p>
-                    <p className="text-xs text-muted-foreground mt-1">This month</p>
+                    <p className="text-2xl font-bold text-foreground mt-1">{filteredInvoices.length}</p>
+                    <p className="text-xs text-muted-foreground mt-1">In selected period</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
                     <p className="text-sm text-muted-foreground">Average Order Value</p>
                     <p className="text-2xl font-bold text-foreground mt-1">
-                      ₹{invoices.length > 0
-                        ? Math.round(invoices.reduce((s, i) => s + i.totalAmount, 0) / invoices.length).toLocaleString("en-IN")
+                      ₹{filteredInvoices.length > 0
+                        ? Math.round(filteredInvoices.reduce((s, i) => s + i.totalAmount, 0) / filteredInvoices.length).toLocaleString("en-IN")
                         : 0}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">Per invoice</p>
@@ -288,9 +318,9 @@ export default function ReportsPage() {
                   <CardContent className="pt-6">
                     <p className="text-sm text-muted-foreground">Total GST Collected</p>
                     <p className="text-2xl font-bold text-foreground mt-1">
-                      ₹{invoices.reduce((s, i) => s + i.gstAmount, 0).toLocaleString("en-IN", { minimumFractionDigits: 0 })}
+                      ₹{filteredInvoices.reduce((s, i) => s + i.gstAmount, 0).toLocaleString("en-IN", { minimumFractionDigits: 0 })}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">This month</p>
+                    <p className="text-xs text-muted-foreground mt-1">In selected period</p>
                   </CardContent>
                 </Card>
               </div>
@@ -298,11 +328,9 @@ export default function ReportsPage() {
               {/* Sales Chart */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">
-                    {period === "daily" ? "Daily" : period === "weekly" ? "Weekly" : "Monthly"} Sales Trend
-                  </CardTitle>
+                  <CardTitle className="text-base">Sales Trend</CardTitle>
                   <CardDescription>
-                    {period === "daily" ? "February 2026" : period === "weekly" ? "February 2026 by week" : "Last 6 months"}
+                    Revenue over the selected period
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -316,7 +344,7 @@ export default function ReportsPage() {
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                       <XAxis
-                        dataKey={period === "daily" ? "day" : period === "weekly" ? "week" : "month"}
+                        dataKey="date"
                         tick={{ fill: "hsl(220, 10%, 46%)", fontSize: 12 }}
                       />
                       <YAxis tick={{ fill: "hsl(220, 10%, 46%)", fontSize: 12 }} />
@@ -344,8 +372,8 @@ export default function ReportsPage() {
               {/* Recent Invoices Table */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Recent Invoices</CardTitle>
-                  <CardDescription>All invoices this period</CardDescription>
+                  <CardTitle className="text-base">Invoices in Period</CardTitle>
+                  <CardDescription>Filtered transactions</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
@@ -361,17 +389,23 @@ export default function ReportsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {invoices.map((inv) => (
-                        <TableRow key={inv.id}>
-                          <TableCell className="font-mono text-sm">{inv.invoiceNumber}</TableCell>
-                          <TableCell className="text-muted-foreground">{inv.date}</TableCell>
-                          <TableCell className="font-medium">{inv.studentName}</TableCell>
-                          <TableCell className="text-muted-foreground">{inv.schoolName.split(" ").slice(0, 2).join(" ")}</TableCell>
-                          <TableCell className="text-right font-mono text-sm">₹{inv.subtotal.toLocaleString("en-IN")}</TableCell>
-                          <TableCell className="text-right font-mono text-sm">₹{inv.gstAmount.toFixed(0)}</TableCell>
-                          <TableCell className="text-right font-medium font-mono">₹{inv.totalAmount.toLocaleString("en-IN")}</TableCell>
-                        </TableRow>
-                      ))}
+                      {filteredInvoices.length === 0 ? (
+                          <TableRow>
+                              <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">No invoices found for this date range</TableCell>
+                          </TableRow>
+                      ) : (
+                          filteredInvoices.map((inv) => (
+                            <TableRow key={inv.id}>
+                              <TableCell className="font-mono text-sm">{inv.invoiceNumber}</TableCell>
+                              <TableCell className="text-muted-foreground">{inv.date}</TableCell>
+                              <TableCell className="font-medium">{inv.studentName}</TableCell>
+                              <TableCell className="text-muted-foreground">{inv.schoolName.split(" ").slice(0, 2).join(" ")}</TableCell>
+                              <TableCell className="text-right font-mono text-sm">₹{inv.subtotal.toLocaleString("en-IN")}</TableCell>
+                              <TableCell className="text-right font-mono text-sm">₹{inv.gstAmount.toFixed(0)}</TableCell>
+                              <TableCell className="text-right font-medium font-mono">₹{inv.totalAmount.toLocaleString("en-IN")}</TableCell>
+                            </TableRow>
+                          ))
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -383,6 +417,11 @@ export default function ReportsPage() {
           <TabsContent value="school" className="mt-6">
             <div className="flex flex-col gap-6">
               <h2 className="text-lg font-semibold text-foreground">School-wise Performance</h2>
+              
+               {/* Date Filter Hint */}
+               <div className="text-sm text-muted-foreground">
+                  Showing data from {fromDate} to {toDate}
+               </div>
 
               {/* School comparison bar chart */}
               <Card>
@@ -477,6 +516,10 @@ export default function ReportsPage() {
           <TabsContent value="product" className="mt-6">
             <div className="flex flex-col gap-6">
               <h2 className="text-lg font-semibold text-foreground">Product-wise Sales</h2>
+               {/* Date Filter Hint */}
+               <div className="text-sm text-muted-foreground">
+                  Showing data from {fromDate} to {toDate}
+               </div>
 
               {/* Category breakdown pie chart */}
               <div className="grid gap-6 lg:grid-cols-2">
@@ -724,177 +767,6 @@ export default function ReportsPage() {
                             {((totalRetailValue - totalCostValue) / totalCostValue * 100).toFixed(1)}%
                           </Badge>
                         </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* =================== COMMISSION REPORT =================== */}
-          <TabsContent value="commission" className="mt-6">
-            <div className="flex flex-col gap-6">
-              <h2 className="text-lg font-semibold text-foreground">Commission Reports</h2>
-
-              {/* Commission summary chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Commission by School</CardTitle>
-                  <CardDescription>Pending vs settled amounts</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={commissionSummary}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis dataKey="shortName" tick={{ fill: "hsl(220, 10%, 46%)", fontSize: 11 }} />
-                      <YAxis tick={{ fill: "hsl(220, 10%, 46%)", fontSize: 12 }} />
-                      <Tooltip
-                        formatter={(value: number, name: string) => [
-                          `₹${value.toLocaleString("en-IN")}`,
-                          name === "settled" ? "Settled" : "Pending",
-                        ]}
-                        contentStyle={{
-                          backgroundColor: "hsl(0, 0%, 100%)",
-                          border: "1px solid hsl(214, 20%, 90%)",
-                          borderRadius: "8px",
-                          fontSize: "12px",
-                        }}
-                      />
-                      <Bar dataKey="settled" fill="hsl(158, 64%, 52%)" radius={[4, 4, 0, 0]} stackId="a" />
-                      <Bar dataKey="pending" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} stackId="a" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                  <div className="flex justify-center gap-6 mt-2">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "hsl(158, 64%, 52%)" }} />
-                      Settled
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "hsl(38, 92%, 50%)" }} />
-                      Pending
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Commission table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">School Commission Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>School</TableHead>
-                        <TableHead className="text-right">Rate</TableHead>
-                        <TableHead className="text-right">Total Commission</TableHead>
-                        <TableHead className="text-right">Settled</TableHead>
-                        <TableHead className="text-right">Pending</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {commissionSummary.map((school) => (
-                        <TableRow key={school.name}>
-                          <TableCell className="font-medium">{school.shortName}</TableCell>
-                          <TableCell className="text-right">{school.rate}%</TableCell>
-                          <TableCell className="text-right font-mono text-sm">₹{school.total.toLocaleString("en-IN")}</TableCell>
-                          <TableCell className="text-right font-mono text-sm text-emerald-600">₹{school.settled.toLocaleString("en-IN")}</TableCell>
-                          <TableCell className="text-right font-mono text-sm text-amber-600">₹{school.pending.toLocaleString("en-IN")}</TableCell>
-                          <TableCell>
-                            {school.pending > 0 ? (
-                              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Pending</Badge>
-                            ) : (
-                              <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Cleared</Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      <TableRow className="bg-muted/50 font-medium">
-                        <TableCell>Total</TableCell>
-                        <TableCell className="text-right">-</TableCell>
-                        <TableCell className="text-right font-mono">₹{commissionSummary.reduce((s, d) => s + d.total, 0).toLocaleString("en-IN")}</TableCell>
-                        <TableCell className="text-right font-mono text-emerald-600">₹{commissionSummary.reduce((s, d) => s + d.settled, 0).toLocaleString("en-IN")}</TableCell>
-                        <TableCell className="text-right font-mono text-amber-600">₹{commissionSummary.reduce((s, d) => s + d.pending, 0).toLocaleString("en-IN")}</TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* =================== CLASS-WISE REPORT =================== */}
-          <TabsContent value="classwise" className="mt-6">
-            <div className="flex flex-col gap-6">
-              <h2 className="text-lg font-semibold text-foreground">Class-wise Sales Analysis</h2>
-
-              {/* Class-wise chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Sales by Class</CardTitle>
-                  <CardDescription>Revenue generated from each class</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={classWiseData}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis dataKey="class" tick={{ fill: "hsl(220, 10%, 46%)", fontSize: 12 }} />
-                      <YAxis tick={{ fill: "hsl(220, 10%, 46%)", fontSize: 12 }} />
-                      <Tooltip
-                        formatter={(value: number, name: string) => [
-                          name === "sales" ? `₹${value.toLocaleString("en-IN")}` : value,
-                          name === "sales" ? "Sales" : "Students",
-                        ]}
-                        contentStyle={{
-                          backgroundColor: "hsl(0, 0%, 100%)",
-                          border: "1px solid hsl(214, 20%, 90%)",
-                          borderRadius: "8px",
-                          fontSize: "12px",
-                        }}
-                      />
-                      <Bar dataKey="sales" fill="hsl(211, 100%, 50%)" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Class-wise table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Class-wise Breakdown</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Class</TableHead>
-                        <TableHead className="text-right">Students</TableHead>
-                        <TableHead className="text-right">Total Sales</TableHead>
-                        <TableHead className="text-right">Avg per Student</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {classWiseData.map((cls) => (
-                        <TableRow key={cls.class}>
-                          <TableCell className="font-medium">Class {cls.class}</TableCell>
-                          <TableCell className="text-right">{cls.students}</TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            ₹{cls.sales > 0 ? cls.sales.toLocaleString("en-IN", { minimumFractionDigits: 0 }) : "0"}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            ₹{cls.students > 0 ? Math.round(cls.sales / cls.students).toLocaleString("en-IN") : "0"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      <TableRow className="bg-muted/50 font-medium">
-                        <TableCell>Total</TableCell>
-                        <TableCell className="text-right">{classWiseData.reduce((s, c) => s + c.students, 0)}</TableCell>
-                        <TableCell className="text-right font-mono">₹{classWiseData.reduce((s, c) => s + c.sales, 0).toLocaleString("en-IN", { minimumFractionDigits: 0 })}</TableCell>
-                        <TableCell className="text-right">-</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>

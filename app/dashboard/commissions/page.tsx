@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { StatCard } from "@/components/stat-card"
 import { Button } from "@/components/ui/button"
@@ -61,8 +61,9 @@ import {
   Pie,
   Cell,
 } from "recharts"
-import { commissions as initialCommissions, schools } from "@/lib/mock-data"
-import type { Commission } from "@/lib/types"
+import type { Commission, School } from "@/lib/types" // Import School type
+import { getCommissions, settleCommission } from "@/lib/api/commissions"
+import { getSchools } from "@/lib/api/schools"
 import { toast } from "sonner"
 
 const COLORS = [
@@ -74,13 +75,37 @@ const COLORS = [
 ]
 
 export default function CommissionsPage() {
-  const [commissionsList, setCommissionsList] = useState<Commission[]>(initialCommissions)
+  const [commissionsList, setCommissionsList] = useState<Commission[]>([])
+  const [schools, setSchools] = useState<School[]>([])
+  const [loading, setLoading] = useState(true)
+
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [monthFilter, setMonthFilter] = useState<string>("all")
   const [settleDialogOpen, setSettleDialogOpen] = useState(false)
   const [settlingCommission, setSettlingCommission] = useState<Commission | null>(null)
   const [viewingCommission, setViewingCommission] = useState<Commission | null>(null)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  async function fetchData() {
+    try {
+      setLoading(true)
+      const [commissionsData, schoolsData] = await Promise.all([
+        getCommissions(),
+        getSchools()
+      ])
+      setCommissionsList(commissionsData)
+      setSchools(schoolsData)
+    } catch (error) {
+      toast.error("Failed to fetch commissions data")
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const totalCommission = commissionsList.reduce((sum, c) => sum + c.commissionAmount, 0)
   const pendingCommissions = commissionsList.filter((c) => c.status === "pending")
@@ -119,21 +144,30 @@ export default function CommissionsPage() {
     return { month: month.split(" ")[0].substring(0, 3), pending, settled }
   })
 
-  function handleSettleCommission(formData: FormData) {
+  async function handleSettleCommission(formData: FormData) {
     if (!settlingCommission) return
     const reference = formData.get("reference") as string
     const settledDate = formData.get("settledDate") as string
+    
+    try {
+        await settleCommission(settlingCommission.id, {
+            reference,
+            settledDate
+        })
 
-    setCommissionsList((prev) =>
-      prev.map((c) =>
-        c.id === settlingCommission.id
-          ? { ...c, status: "settled" as const, settledDate, reference }
-          : c,
-      ),
-    )
-    setSettleDialogOpen(false)
-    setSettlingCommission(null)
-    toast.success(`Commission for ${settlingCommission.schoolName} marked as settled`)
+        setCommissionsList((prev) =>
+          prev.map((c) =>
+            c.id === settlingCommission.id
+              ? { ...c, status: "settled" as const, settledDate, reference }
+              : c,
+          ),
+        )
+        setSettleDialogOpen(false)
+        setSettlingCommission(null)
+        toast.success(`Commission for ${settlingCommission.schoolName} marked as settled`)
+    } catch (error) {
+        toast.error("Failed to settle commission")
+    }
   }
 
   function openSettleDialog(commission: Commission) {
