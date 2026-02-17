@@ -1,16 +1,9 @@
-import { API_BASE_URL, getAuthHeaders } from './config';
+import { apiRequest } from './config';
 import { Student } from '../types';
 
 export const getStudents = async (): Promise<Student[]> => {
-  const response = await fetch(`${API_BASE_URL}/students`, {
-    headers: getAuthHeaders(),
-  });
+  const data = await apiRequest('/students');
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch students');
-  }
-
-  const data = await response.json();
   return data.data.map((student: any) => ({
     id: student._id,
     rollNumber: student.rollNumber,
@@ -24,18 +17,11 @@ export const getStudents = async (): Promise<Student[]> => {
 };
 
 export const createStudent = async (studentData: any): Promise<Student> => {
-  const response = await fetch(`${API_BASE_URL}/students`, {
+  const data = await apiRequest('/students', {
     method: 'POST',
-    headers: getAuthHeaders(),
     body: JSON.stringify(studentData),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to create student');
-  }
-
-  const data = await response.json();
   const student = data.data;
   return {
     id: student._id,

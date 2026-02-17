@@ -1,28 +1,16 @@
 import { AuthResponse } from "@/lib/types";
-import { API_BASE_URL, getAuthHeaders } from './config';
+import { apiRequest } from './config';
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
+  const data = await apiRequest('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+    skipRedirect: true,
+  });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Login failed');
-    }
-
-    if (!data.success) {
-      throw new Error(data.message || 'Login failed');
-    }
-
-    return data;
-  } catch (error) {
-    throw error;
+  if (!data.success) {
+    throw new Error(data.message || 'Login failed');
   }
+
+  return data;
 }

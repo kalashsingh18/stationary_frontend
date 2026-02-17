@@ -1,16 +1,8 @@
-import { API_BASE_URL, getAuthHeaders } from './config';
+import { apiRequest } from './config';
 import { School } from '../types';
 
 export const getSchools = async (): Promise<School[]> => {
-  const response = await fetch(`${API_BASE_URL}/schools`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch schools');
-  }
-
-  const data = await response.json();
+  const data = await apiRequest('/schools');
   // Transform backend _id to frontend id if necessary, or ensure types match
   return data.data.map((school: any) => ({
     id: school._id, // Map _id to id
@@ -29,18 +21,10 @@ export const getSchools = async (): Promise<School[]> => {
 };
 
 export const createSchool = async (schoolData: any): Promise<School> => {
-  const response = await fetch(`${API_BASE_URL}/schools`, {
+  const data = await apiRequest('/schools', {
     method: 'POST',
-    headers: getAuthHeaders(),
     body: JSON.stringify(schoolData),
   });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to create school');
-  }
-
-  const data = await response.json();
   const school = data.data;
   return {
       id: school._id,
