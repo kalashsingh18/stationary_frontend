@@ -195,7 +195,16 @@ export default function SuppliersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSuppliers.length === 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        <span className="text-sm text-muted-foreground font-medium">Loading suppliers...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredSuppliers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       No suppliers found.
@@ -206,7 +215,7 @@ export default function SuppliersPage() {
                     <TableRow key={supplier.id}>
                       <TableCell className="font-mono text-sm">{supplier.code}</TableCell>
                       <TableCell className="font-medium">{supplier.name}</TableCell>
-                      <TableCell className="font-mono text-sm">{supplier.phone}</TableCell>
+                      <TableCell className="font-mono text-sm">{supplier.contact?.phone}</TableCell>
                       <TableCell className="font-mono text-sm">{supplier.gstin}</TableCell>
                       <TableCell>{supplier.paymentTerms}</TableCell>
                       <TableCell className="text-muted-foreground max-w-[200px] truncate">{supplier.address}</TableCell>
@@ -301,7 +310,7 @@ export default function SuppliersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-phone">Phone</Label>
-                  <Input id="edit-phone" name="phone" defaultValue={editingSupplier?.phone} required />
+                  <Input id="edit-phone" name="phone" defaultValue={editingSupplier?.contact?.phone} required />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-gstin">GSTIN</Label>

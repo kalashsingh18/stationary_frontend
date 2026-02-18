@@ -14,18 +14,20 @@ export const getInvoices = async (): Promise<Invoice[]> => {
     schoolName: invoice.school?.name || '',
     items: invoice.items.map((item: any) => ({
         productId: item.product?._id || item.product,
-        productName: item.product?.name || '',
+        productName: item.productName || '',
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         gstRate: item.gstRate,
         gstAmount: item.gstAmount,
-        total: item.total
+        total: item.totalPrice
     })),
     subtotal: invoice.subtotal,
     discount: invoice.discount,
     gstAmount: invoice.gstAmount,
     totalAmount: invoice.totalAmount,
-    commissionAmount: invoice.commissionAmount
+    commissionAmount: invoice.commissionAmount,
+    paymentStatus: invoice.paymentStatus,
+    paymentMethod: invoice.paymentMethod
   }));
 };
 
@@ -37,21 +39,64 @@ export const createInvoice = async (invoiceData: any): Promise<Invoice> => {
 
   const invoice = data.data;
 
-  // Ideally we return the mapped object, but here simplified for creation usage
   return {
     id: invoice._id,
     invoiceNumber: invoice.invoiceNumber,
     date: new Date(invoice.createdAt).toISOString().split('T')[0],
     studentId: invoice.student,
-    studentName: '', // populate needed
+    studentName: '', 
     rollNumber: '',
     schoolId: invoice.school,
     schoolName: '',
-    items: invoice.items,
+    items: invoice.items.map((item: any) => ({
+        productId: item.product?._id || item.product,
+        productName: item.productName || '',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        gstRate: item.gstRate,
+        gstAmount: item.gstAmount,
+        total: item.totalPrice
+    })),
     subtotal: invoice.subtotal,
     discount: invoice.discount,
     gstAmount: invoice.gstAmount,
     totalAmount: invoice.totalAmount,
-    commissionAmount: invoice.commissionAmount
+    commissionAmount: invoice.commissionAmount,
+    paymentStatus: invoice.paymentStatus,
+    paymentMethod: invoice.paymentMethod
   };
 };
+
+export async function updateInvoice(id: string, data: any): Promise<Invoice> {
+    const response = await apiRequest(`/invoices/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+    });
+    const invoice = response.data;
+    return {
+        id: invoice._id,
+        invoiceNumber: invoice.invoiceNumber,
+        date: new Date(invoice.invoiceDate).toISOString().split('T')[0],
+        studentId: invoice.student?._id || invoice.student,
+        studentName: invoice.student?.name || '',
+        rollNumber: invoice.student?.rollNumber || '',
+        schoolId: invoice.school?._id || invoice.school,
+        schoolName: invoice.school?.name || '',
+        items: invoice.items.map((item: any) => ({
+            productId: item.product?._id || item.product,
+            productName: item.productName || '',
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            gstRate: item.gstRate,
+            gstAmount: item.gstAmount,
+            total: item.totalPrice
+        })),
+        subtotal: invoice.subtotal,
+        discount: invoice.discount || 0,
+        gstAmount: invoice.gstAmount,
+        totalAmount: invoice.totalAmount,
+        commissionAmount: invoice.commissionAmount,
+        paymentStatus: invoice.paymentStatus,
+        paymentMethod: invoice.paymentMethod
+    };
+}

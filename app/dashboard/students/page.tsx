@@ -341,7 +341,16 @@ export default function StudentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStudents.length === 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        <span className="text-sm text-muted-foreground font-medium">Loading students...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredStudents.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       No students found.

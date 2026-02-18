@@ -15,6 +15,8 @@ export const viewport: Viewport = {
   themeColor: '#0A84FF',
 }
 
+import { LoadingBar } from '@/components/loading-bar'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -22,7 +24,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${_inter.variable} ${_jetbrainsMono.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${_inter.variable} ${_jetbrainsMono.variable} font-sans antialiased`}>
+        <LoadingBar />
+        {children}
+      </body>
     </html>
   )
 }

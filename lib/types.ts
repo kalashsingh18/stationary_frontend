@@ -19,8 +19,8 @@ export interface Student {
   class: string
   section: string
   phone?: string
-  schoolId: string
-  schoolName: string
+  schoolId?: string
+  schoolName?: string
 }
 
 export interface Category {
@@ -86,14 +86,16 @@ export interface Invoice {
   studentId: string
   studentName: string
   rollNumber: string
-  schoolId: string
-  schoolName: string
+  schoolId?: string
+  schoolName?: string
   items: InvoiceItem[]
   subtotal: number
   discount: number
   gstAmount: number
   totalAmount: number
   commissionAmount: number
+  paymentStatus: "paid" | "unpaid" | "partial"
+  paymentMethod: "cash" | "card" | "upi" | "bank_transfer"
 }
 
 export interface InvoiceItem {

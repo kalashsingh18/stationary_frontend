@@ -356,9 +356,18 @@ export default function CommissionsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredCommissions
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8">
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              <span className="text-sm text-muted-foreground font-medium">Loading commissions...</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (filteredCommissions
                         .filter((c) => tab === "all" || c.status === tab)
-                        .length === 0 ? (
+                        .length === 0) ? (
                         <TableRow>
                           <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                             No commission records found.

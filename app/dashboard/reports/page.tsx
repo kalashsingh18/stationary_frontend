@@ -389,7 +389,16 @@ export default function ReportsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredInvoices.length === 0 ? (
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              <span className="text-sm text-muted-foreground font-medium">Loading report data...</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredInvoices.length === 0 ? (
                           <TableRow>
                               <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">No invoices found for this date range</TableCell>
                           </TableRow>
