@@ -85,8 +85,10 @@ export default function CommissionsPage() {
   const [settleDialogOpen, setSettleDialogOpen] = useState(false)
   const [settlingCommission, setSettlingCommission] = useState<Commission | null>(null)
   const [viewingCommission, setViewingCommission] = useState<Commission | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     fetchData()
   }, [])
 
@@ -442,133 +444,137 @@ export default function CommissionsPage() {
       </div>
 
       {/* Settle Commission Dialog */}
-      <Dialog open={settleDialogOpen} onOpenChange={setSettleDialogOpen}>
-        <DialogContent className="sm:max-w-[450px]">
-          <form action={handleSettleCommission}>
-            <DialogHeader>
-              <DialogTitle>Settle Commission</DialogTitle>
-              <DialogDescription>
-                Mark commission as paid for {settlingCommission?.schoolName} - {settlingCommission?.month}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="rounded-lg bg-muted p-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Base Amount</p>
-                    <p className="font-medium font-mono">
-                      ₹{settlingCommission?.baseAmount.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Commission Rate</p>
-                    <p className="font-medium">{settlingCommission?.commissionRate}%</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-xs text-muted-foreground">Commission Amount</p>
-                    <p className="text-xl font-bold text-foreground font-mono">
-                      ₹{settlingCommission?.commissionAmount.toLocaleString("en-IN")}
-                    </p>
+      {mounted && (
+        <Dialog open={settleDialogOpen} onOpenChange={setSettleDialogOpen}>
+          <DialogContent className="sm:max-w-[450px]">
+            <form action={handleSettleCommission}>
+              <DialogHeader>
+                <DialogTitle>Settle Commission</DialogTitle>
+                <DialogDescription>
+                  Mark commission as paid for {settlingCommission?.schoolName} - {settlingCommission?.month}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="rounded-lg bg-muted p-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Base Amount</p>
+                      <p className="font-medium font-mono">
+                        ₹{settlingCommission?.baseAmount.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Commission Rate</p>
+                      <p className="font-medium">{settlingCommission?.commissionRate}%</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Commission Amount</p>
+                      <p className="text-xl font-bold text-foreground font-mono">
+                        ₹{settlingCommission?.commissionAmount.toLocaleString("en-IN")}
+                      </p>
+                    </div>
                   </div>
                 </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="settledDate">Settlement Date</Label>
+                  <Input
+                    id="settledDate"
+                    name="settledDate"
+                    type="date"
+                    required
+                    defaultValue={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="reference">Payment Reference (UTR / Cheque No.)</Label>
+                  <Input
+                    id="reference"
+                    name="reference"
+                    required
+                    placeholder="e.g. UTR-98765432"
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="settledDate">Settlement Date</Label>
-                <Input
-                  id="settledDate"
-                  name="settledDate"
-                  type="date"
-                  required
-                  defaultValue={new Date().toISOString().split("T")[0]}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="reference">Payment Reference (UTR / Cheque No.)</Label>
-                <Input
-                  id="reference"
-                  name="reference"
-                  required
-                  placeholder="e.g. UTR-98765432"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setSettleDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Confirm Settlement</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setSettleDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Confirm Settlement</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* View Commission Details Dialog */}
-      <Dialog open={!!viewingCommission} onOpenChange={() => setViewingCommission(null)}>
-        <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle>Commission Details</DialogTitle>
-            <DialogDescription>
-              {viewingCommission?.schoolName} - {viewingCommission?.month}
-            </DialogDescription>
-          </DialogHeader>
-          {viewingCommission && (
-            <div className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Sales</p>
-                  <p className="font-medium font-mono">₹{viewingCommission.totalSales.toLocaleString("en-IN")}</p>
+      {mounted && (
+        <Dialog open={!!viewingCommission} onOpenChange={() => setViewingCommission(null)}>
+          <DialogContent className="sm:max-w-[450px]">
+            <DialogHeader>
+              <DialogTitle>Commission Details</DialogTitle>
+              <DialogDescription>
+                {viewingCommission?.schoolName} - {viewingCommission?.month}
+              </DialogDescription>
+            </DialogHeader>
+            {viewingCommission && (
+              <div className="grid gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Sales</p>
+                    <p className="font-medium font-mono">₹{viewingCommission.totalSales.toLocaleString("en-IN")}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Base Amount (excl. GST)</p>
+                    <p className="font-medium font-mono">₹{viewingCommission.baseAmount.toLocaleString("en-IN")}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Commission Rate</p>
+                    <p className="font-medium">{viewingCommission.commissionRate}%</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Commission Amount</p>
+                    <p className="font-medium font-mono">₹{viewingCommission.commissionAmount.toLocaleString("en-IN")}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Base Amount (excl. GST)</p>
-                  <p className="font-medium font-mono">₹{viewingCommission.baseAmount.toLocaleString("en-IN")}</p>
+                <div className="rounded-lg bg-muted p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Status</span>
+                    <Badge
+                      className={
+                        viewingCommission.status === "pending"
+                          ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
+                          : "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                      }
+                    >
+                      {viewingCommission.status === "settled" ? (
+                        <CheckCircle2 className="mr-1 h-3 w-3" />
+                      ) : (
+                        <Clock className="mr-1 h-3 w-3" />
+                      )}
+                      {viewingCommission.status}
+                    </Badge>
+                  </div>
+                  {viewingCommission.status === "settled" && (
+                    <>
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Settled Date</span>
+                        <span className="text-sm font-medium">{viewingCommission.settledDate}</span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Reference</span>
+                        <span className="text-sm font-mono font-medium">{viewingCommission.reference}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Commission Rate</p>
-                  <p className="font-medium">{viewingCommission.commissionRate}%</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Commission Amount</p>
-                  <p className="font-medium font-mono">₹{viewingCommission.commissionAmount.toLocaleString("en-IN")}</p>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Commission is calculated on the base amount (excluding GST) at {viewingCommission.commissionRate}%.
+                </p>
               </div>
-              <div className="rounded-lg bg-muted p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Status</span>
-                  <Badge
-                    className={
-                      viewingCommission.status === "pending"
-                        ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
-                        : "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
-                    }
-                  >
-                    {viewingCommission.status === "settled" ? (
-                      <CheckCircle2 className="mr-1 h-3 w-3" />
-                    ) : (
-                      <Clock className="mr-1 h-3 w-3" />
-                    )}
-                    {viewingCommission.status}
-                  </Badge>
-                </div>
-                {viewingCommission.status === "settled" && (
-                  <>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Settled Date</span>
-                      <span className="text-sm font-medium">{viewingCommission.settledDate}</span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Reference</span>
-                      <span className="text-sm font-mono font-medium">{viewingCommission.reference}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Commission is calculated on the base amount (excluding GST) at {viewingCommission.commissionRate}%.
-              </p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }

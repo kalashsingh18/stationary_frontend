@@ -27,7 +27,10 @@ export const getInvoices = async (): Promise<Invoice[]> => {
     totalAmount: invoice.totalAmount,
     commissionAmount: invoice.commissionAmount,
     paymentStatus: invoice.paymentStatus,
-    paymentMethod: invoice.paymentMethod
+    paymentMethod: invoice.paymentMethod,
+    isGstInvoice: invoice.isGstInvoice,
+    gstNumber: invoice.gstNumber,
+    businessInfo: invoice.businessInfo
   }));
 };
 
@@ -63,7 +66,10 @@ export const createInvoice = async (invoiceData: any): Promise<Invoice> => {
     totalAmount: invoice.totalAmount,
     commissionAmount: invoice.commissionAmount,
     paymentStatus: invoice.paymentStatus,
-    paymentMethod: invoice.paymentMethod
+    paymentMethod: invoice.paymentMethod,
+    isGstInvoice: invoice.isGstInvoice,
+    gstNumber: invoice.gstNumber,
+    businessInfo: invoice.businessInfo
   };
 };
 
@@ -97,6 +103,13 @@ export async function updateInvoice(id: string, data: any): Promise<Invoice> {
         totalAmount: invoice.totalAmount,
         commissionAmount: invoice.commissionAmount,
         paymentStatus: invoice.paymentStatus,
-        paymentMethod: invoice.paymentMethod
+        paymentMethod: invoice.paymentMethod,
+        isGstInvoice: invoice.isGstInvoice,
+        gstNumber: invoice.gstNumber,
+        businessInfo: invoice.businessInfo
     };
 }
+
+export const lookupGst = async (gstin: string): Promise<any> => {
+    return apiRequest(`/invoices/lookup-gst/${gstin}`);
+};

@@ -54,8 +54,10 @@ export default function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     fetchData()
   }, [])
 
@@ -145,7 +147,7 @@ export default function ProductsPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Products" },
         ]}
-        actions={
+        actions={mounted ? (
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -229,7 +231,7 @@ export default function ProductsPage() {
               </form>
             </DialogContent>
           </Dialog>
-        }
+        ) : null}
       />
 
       <div className="flex flex-col gap-6 p-6">

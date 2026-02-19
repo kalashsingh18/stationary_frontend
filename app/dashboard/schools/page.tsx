@@ -50,8 +50,10 @@ export default function SchoolsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingSchool, setEditingSchool] = useState<School | null>(null)
   const [viewingSchool, setViewingSchool] = useState<School | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     fetchSchools()
   }, [])
 
@@ -136,7 +138,7 @@ export default function SchoolsPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Schools" },
         ]}
-        actions={
+        actions={mounted ? (
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -187,7 +189,7 @@ export default function SchoolsPage() {
               </form>
             </DialogContent>
           </Dialog>
-        }
+        ) : null}
       />
 
       <div className="flex flex-col gap-6 p-6">

@@ -40,8 +40,10 @@ export default function SuppliersPage() {
   const [loading, setLoading] = useState(true)
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     fetchSuppliers()
   }, [])
 
@@ -106,7 +108,7 @@ export default function SuppliersPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Suppliers" },
         ]}
-        actions={
+        actions={mounted ? (
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -164,7 +166,7 @@ export default function SuppliersPage() {
               </form>
             </DialogContent>
           </Dialog>
-        }
+        ) : null}
       />
 
       <div className="flex flex-col gap-6 p-6">

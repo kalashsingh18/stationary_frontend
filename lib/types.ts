@@ -96,6 +96,9 @@ export interface Invoice {
   commissionAmount: number
   paymentStatus: "paid" | "unpaid" | "partial"
   paymentMethod: "cash" | "card" | "upi" | "bank_transfer"
+  isGstInvoice?: boolean
+  gstNumber?: string
+  businessInfo?: any
 }
 
 export interface InvoiceItem {

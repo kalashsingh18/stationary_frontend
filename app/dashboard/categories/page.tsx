@@ -40,8 +40,10 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     fetchCategories()
   }, [])
 
@@ -95,7 +97,7 @@ export default function CategoriesPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Categories" },
         ]}
-        actions={
+        actions={mounted ? (
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -126,7 +128,7 @@ export default function CategoriesPage() {
               </form>
             </DialogContent>
           </Dialog>
-        }
+        ) : null}
       />
 
       <div className="flex flex-col gap-6 p-6">

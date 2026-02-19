@@ -57,8 +57,10 @@ export default function StudentsPage() {
   const [uploadSchoolId, setUploadSchoolId] = useState("")
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     fetchData()
   }, [])
 
@@ -150,7 +152,7 @@ export default function StudentsPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Students" },
         ]}
-        actions={
+        actions={mounted ? (
           <div className="flex items-center gap-2">
             <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
               <DialogTrigger asChild>
@@ -281,7 +283,7 @@ export default function StudentsPage() {
               </DialogContent>
             </Dialog>
           </div>
-        }
+        ) : null}
       />
 
       <div className="flex flex-col gap-6 p-6">

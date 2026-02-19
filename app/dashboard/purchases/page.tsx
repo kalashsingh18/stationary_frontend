@@ -54,6 +54,7 @@ export default function PurchasesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [viewingPurchase, setViewingPurchase] = useState<PurchaseOrder | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   // New purchase form state
   const [newSupplierId, setNewSupplierId] = useState("")
@@ -63,6 +64,7 @@ export default function PurchasesPage() {
   const [selectedPrice, setSelectedPrice] = useState(0)
 
   useEffect(() => {
+    setMounted(true)
     fetchData()
   }, [])
 
@@ -191,9 +193,8 @@ export default function PurchasesPage() {
         title="Purchases"
         breadcrumbs={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Purchases" },
         ]}
-        actions={
+        actions={mounted ? (
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -293,7 +294,7 @@ export default function PurchasesPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        }
+        ) : null}
       />
 
       <div className="flex flex-col gap-6 p-6">
@@ -396,60 +397,62 @@ export default function PurchasesPage() {
       </div>
 
       {/* View PO Dialog */}
-      <Dialog open={!!viewingPurchase} onOpenChange={() => setViewingPurchase(null)}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>{viewingPurchase?.purchaseNumber}</DialogTitle>
-            <DialogDescription>Purchase order details</DialogDescription>
-          </DialogHeader>
-          {viewingPurchase && (
-            <div className="grid gap-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Supplier</p>
-                  <p className="font-medium">{viewingPurchase.supplierName}</p>
+      {mounted && (
+        <Dialog open={!!viewingPurchase} onOpenChange={() => setViewingPurchase(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{viewingPurchase?.purchaseNumber}</DialogTitle>
+              <DialogDescription>Purchase order details</DialogDescription>
+            </DialogHeader>
+            {viewingPurchase && (
+              <div className="grid gap-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Supplier</p>
+                    <p className="font-medium">{viewingPurchase.supplierName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Date</p>
+                    <p className="font-medium">{viewingPurchase.date}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge variant={viewingPurchase.paymentStatus === "paid" ? "default" : "secondary"}>
+                      {viewingPurchase.paymentStatus}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Date</p>
-                  <p className="font-medium">{viewingPurchase.date}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={viewingPurchase.paymentStatus === "paid" ? "default" : "secondary"}>
-                    {viewingPurchase.paymentStatus}
-                  </Badge>
-                </div>
-              </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {viewingPurchase.items.map((item) => (
-                    <TableRow key={item.productId}>
-                      <TableCell>{item.productName}</TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-right">₹{item.unitPrice}</TableCell>
-                      <TableCell className="text-right font-medium">₹{item.total.toLocaleString("en-IN")}</TableCell>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Unit Price</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="flex justify-end">
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Total Amount</p>
-                  <p className="text-2xl font-bold text-foreground">₹{viewingPurchase.totalAmount.toLocaleString("en-IN")}</p>
+                  </TableHeader>
+                  <TableBody>
+                    {viewingPurchase.items.map((item) => (
+                      <TableRow key={item.productId}>
+                        <TableCell>{item.productName}</TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right">₹{item.unitPrice}</TableCell>
+                        <TableCell className="text-right font-medium">₹{item.total.toLocaleString("en-IN")}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <div className="flex justify-end">
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Total Amount</p>
+                    <p className="text-2xl font-bold text-foreground">₹{viewingPurchase.totalAmount.toLocaleString("en-IN")}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }
